@@ -503,8 +503,8 @@ def build_stacked_bars_svg(payload: dict[str, Any]) -> str:
         '<title id="title">Inversion por marca, barras stackeadas</title>',
         '<desc id="desc">Barras horizontales stackeadas con inversion total por marca y desglose por medio.</desc>',
         '<rect width="100%" height="100%" fill="#f6f2e9"/>',
-        '<text x="48" y="54" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#1f2937">Inversion total por marca</text>',
-        '<text x="48" y="84" font-family="Georgia, serif" font-size="18" fill="#5f6b7a">Barras stackeadas por tipo de medio. Montos en CLP.</text>',
+        '<text x="48" y="54" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">Inversion total por marca</text>',
+        '<text x="48" y="84" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Barras stackeadas por tipo de medio. Montos en CLP.</text>',
     ]
 
     legend_x = 48
@@ -512,7 +512,7 @@ def build_stacked_bars_svg(payload: dict[str, Any]) -> str:
     for slug in payload["media_order"]:
         parts.append(f'<rect x="{legend_x}" y="{legend_y - 12}" width="14" height="14" rx="7" fill="{media_colors[slug]}"/>')
         parts.append(
-            f'<text x="{legend_x + 24}" y="{legend_y}" font-family="Georgia, serif" font-size="16" fill="#334155">{labels[slug]}</text>'
+            f'<text x="{legend_x + 24}" y="{legend_y}" font-family="Helvetica Neue, Arial, sans-serif" font-size="16" fill="#334155">{labels[slug]}</text>'
         )
         legend_x += 130
 
@@ -521,14 +521,14 @@ def build_stacked_bars_svg(payload: dict[str, Any]) -> str:
         value = max_total * tick_index / ticks
         parts.append(f'<line x1="{x}" y1="{margin_top}" x2="{x}" y2="{height - margin_bottom}" stroke="#e8e3d8" stroke-width="1"/>')
         parts.append(
-            f'<text x="{x}" y="{height - 34}" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#64748b">{svg_escape(svg_compact(value))}</text>'
+            f'<text x="{x}" y="{height - 34}" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="14" fill="#64748b">{svg_escape(svg_compact(value))}</text>'
         )
 
     for index, item in enumerate(payload["brand_totals"]):
         y = margin_top + index * row_height
         cursor = margin_left
         parts.append(
-            f'<text x="{margin_left - 14}" y="{y + 22}" text-anchor="end" font-family="Georgia, serif" font-size="16" fill="#1f2937">{svg_escape(item["brand_name"])}</text>'
+            f'<text x="{margin_left - 14}" y="{y + 22}" text-anchor="end" font-family="Helvetica Neue, Arial, sans-serif" font-size="16" fill="#1f2937">{svg_escape(item["brand_name"])}</text>'
         )
         for slug in payload["media_order"]:
             value = item["media_breakdown"].get(slug, 0.0)
@@ -539,7 +539,7 @@ def build_stacked_bars_svg(payload: dict[str, Any]) -> str:
                 )
                 cursor += segment_width
         parts.append(
-            f'<text x="{margin_left + plot_width + 14}" y="{y + 23}" font-family="Georgia, serif" font-size="15" fill="#334155">{svg_escape(svg_currency(item["total"]))}</text>'
+            f'<text x="{margin_left + plot_width + 14}" y="{y + 23}" font-family="Helvetica Neue, Arial, sans-serif" font-size="15" fill="#334155">{svg_escape(svg_currency(item["total"]))}</text>'
         )
 
     parts.append("</svg>")
@@ -565,8 +565,8 @@ def build_lines_svg(payload: dict[str, Any]) -> str:
         '<title id="title">Inversion mensual por marca, lineas</title>',
         '<desc id="desc">Lineas con la evolucion mensual de la inversion total por marca.</desc>',
         '<rect width="100%" height="100%" fill="#f6f2e9"/>',
-        '<text x="48" y="52" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#1f2937">Evolucion mensual por marca</text>',
-        '<text x="48" y="82" font-family="Georgia, serif" font-size="18" fill="#5f6b7a">Serie mensual de inversion neta total, en CLP.</text>',
+        '<text x="48" y="52" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">Evolucion mensual por marca</text>',
+        '<text x="48" y="82" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Serie mensual de inversion neta total, en CLP.</text>',
     ]
 
     for tick_index in range(5):
@@ -574,14 +574,14 @@ def build_lines_svg(payload: dict[str, Any]) -> str:
         value = max_value * tick_index / 4
         parts.append(f'<line x1="{margin_left}" y1="{y}" x2="{width - margin_right}" y2="{y}" stroke="#e8e3d8" stroke-width="1"/>')
         parts.append(
-            f'<text x="{margin_left - 12}" y="{y + 4}" text-anchor="end" font-family="Georgia, serif" font-size="14" fill="#64748b">{svg_escape(svg_compact(value))}</text>'
+            f'<text x="{margin_left - 12}" y="{y + 4}" text-anchor="end" font-family="Helvetica Neue, Arial, sans-serif" font-size="14" fill="#64748b">{svg_escape(svg_compact(value))}</text>'
         )
 
     for month_index, month in enumerate(payload["months"]):
         x = margin_left + (plot_width / 2 if len(payload["months"]) == 1 else plot_width * month_index / (len(payload["months"]) - 1))
         parts.append(f'<line x1="{x}" y1="{margin_top}" x2="{x}" y2="{height - margin_bottom}" stroke="#efeadd" stroke-width="1"/>')
         parts.append(
-            f'<text x="{x}" y="{height - 26}" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#64748b">{svg_escape(month)}</text>'
+            f'<text x="{x}" y="{height - 26}" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="15" fill="#64748b">{svg_escape(month)}</text>'
         )
 
     legend_y = 116
@@ -599,11 +599,11 @@ def build_lines_svg(payload: dict[str, Any]) -> str:
             parts.append(f'<circle cx="{x}" cy="{y}" r="4.5" fill="{color}"/>')
         last_x, last_y = points[-1]
         parts.append(
-            f'<text x="{last_x + 12}" y="{last_y + 5}" font-family="Georgia, serif" font-size="14" font-weight="700" fill="{color}">{svg_escape(item["brand_name"])}</text>'
+            f'<text x="{last_x + 12}" y="{last_y + 5}" font-family="Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="700" fill="{color}">{svg_escape(item["brand_name"])}</text>'
         )
         parts.append(f'<rect x="{width - margin_right + 20}" y="{legend_y - 12}" width="14" height="14" rx="7" fill="{color}"/>')
         parts.append(
-            f'<text x="{width - margin_right + 42}" y="{legend_y}" font-family="Georgia, serif" font-size="15" fill="#334155">{svg_escape(item["brand_name"])}</text>'
+            f'<text x="{width - margin_right + 42}" y="{legend_y}" font-family="Helvetica Neue, Arial, sans-serif" font-size="15" fill="#334155">{svg_escape(item["brand_name"])}</text>'
         )
         legend_y += 28
 
@@ -640,7 +640,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: Georgia, "Times New Roman", serif;
+      font-family: "Helvetica Neue", Arial, sans-serif;
       color: var(--ink);
       background:
         radial-gradient(circle at top left, rgba(139, 30, 63, 0.12), transparent 28%),
