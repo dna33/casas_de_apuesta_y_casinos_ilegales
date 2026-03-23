@@ -1,5 +1,7 @@
 # Observatorio Abierto de Publicidad de Apuestas Online en Chile
 
+> Este repositorio documenta información pública y verificable sobre publicidad de apuestas online en Chile. Su contenido no constituye imputación penal, acusación de delito ni calificación jurídica definitiva respecto de personas o empresas específicas.
+
 ## Data Products
 
 Primer data product publicado: inversión mensual por marca en publicidad de apuestas y casinos online observados en Chile.
@@ -33,9 +35,9 @@ Vista previa directa en GitHub:
 
 ![Lineas por mes](output/visualizations/inversion_por_mes_lineas.svg)
 
-Repositorio abierto destinado a recopilar, verificar y publicar información sobre **publicidad y presencia en medios chilenos de casinos y casas de apuestas online que no cuentan con autorización legal en Chile**.
+Repositorio abierto destinado a recopilar, verificar y publicar información sobre **publicidad y presencia en medios chilenos de plataformas de apuestas online cuya autorización para operar o publicitarse en Chile ha sido objeto de controversia pública, regulatoria o judicial**.
 
-El objetivo es **orientar a la ciudadanía**, periodistas, investigadores y autoridades respecto de si la publicidad de apuestas que aparece en transmisiones deportivas, camisetas, medios digitales o eventos corresponde o no a **actividades autorizadas por la legislación chilena**.
+El objetivo es **orientar a la ciudadanía**, periodistas, investigadores y autoridades respecto de si la publicidad de apuestas que aparece en transmisiones deportivas, camisetas, medios digitales o eventos corresponde o no, **según fuentes públicas y criterios jurídicos citados**, a actividades autorizadas por la legislación chilena.
 
 Este repositorio busca funcionar como **infraestructura abierta de observación pública**: un espacio donde distintos actores puedan aportar información verificable sobre la presencia de estas plataformas en el ecosistema mediático chileno.
 
@@ -54,7 +56,7 @@ Durante los últimos años múltiples **plataformas de apuestas online operadas 
 - redes sociales  
 - plataformas de streaming  
 
-Diversos fallos de la Corte Suprema han señalado que estas operaciones **no cuentan con autorización legal en Chile**, lo que ha abierto un debate público respecto de su publicidad, financiamiento del deporte y tratamiento tributario.
+Diversos fallos de la Corte Suprema han abordado la oferta y publicidad de apuestas online en Chile y han sostenido, en casos específicos, que solo las entidades autorizadas por ley pueden desarrollar dichas actividades. Eso ha abierto un debate público respecto de su publicidad, financiamiento del deporte y tratamiento tributario.
 
 Este repositorio busca **ordenar información dispersa y hacerla verificable**.
 
@@ -62,7 +64,7 @@ Este repositorio busca **ordenar información dispersa y hacerla verificable**.
 
 ## Objetivos
 
-1. **Catalogar plataformas de apuestas online que operan o se publicitan en Chile.**
+1. **Catalogar plataformas de apuestas online que operan o se publicitan en Chile, con base en registros publicitarios y otras fuentes públicas verificables.**
 
 2. **Registrar presencia publicitaria observable** en medios chilenos, incluyendo:
    - patrocinios deportivos
@@ -91,7 +93,7 @@ Su objetivo es **documentar información pública verificable** sobre:
 - patrocinio  
 - presencia mediática  
 
-de operadores de apuestas online que **no cuentan con autorización legal explícita para operar en Chile**.
+de operadores de apuestas online cuya autorización para operar o publicitarse en Chile **ha sido cuestionada o discutida en fuentes públicas, regulatorias o judiciales citadas por el proyecto**.
 
 ---
 
@@ -116,7 +118,7 @@ Entre plataformas de casino online:
 - 888casino  
 - LeoVegas  
 
-La presencia de estas plataformas en el repositorio **no constituye una acusación**, sino un registro de **actividad publicitaria observable en Chile**.
+La presencia de estas plataformas en el repositorio **no constituye una acusación ni una imputación penal**, sino un registro de **actividad publicitaria observable en Chile**.
 
 ---
 
@@ -131,6 +133,13 @@ Las discusiones sobre la legalidad de estas actividades suelen referirse a norma
 
 Además, distintos fallos judiciales han abordado el funcionamiento y la publicidad de plataformas de apuestas online.
 
+### Fallos citados
+
+- **Corte Suprema, 13 de septiembre de 2023, rol 152.138-2022**. La Tercera Sala acogió un recurso de protección presentado por Polla Chilena de Beneficencia y ordenó bloquear sitios de apuestas deportivas online, señalando que la actividad solo puede ser desarrollada por entidades autorizadas por ley. Fuente: [Poder Judicial](https://www.pjud.cl/prensa-y-comunicaciones/noticias-del-poder-judicial/98612).
+- **Corte Suprema, 30 de septiembre de 2025, rol 18.080-2025**. La Tercera Sala acogió un recurso de protección presentado por Lotería de Concepción y ordenó bloquear sitios de apuestas deportivas online, indicando que solo las empresas autorizadas por ley pueden desarrollar apuestas deportivas. Fuente: [Poder Judicial](https://www.pjud.cl/prensa-y-comunicaciones/noticias-del-poder-judicial/133057).
+
+Estos fallos se citan como fuentes públicas relevantes para el debate regulatorio y judicial. Su mención en este repositorio no reemplaza asesoría legal ni implica una calificación jurídica definitiva para cada marca incluida en la base.
+
 ---
 
 ## Metodología
@@ -143,7 +152,7 @@ Cada registro incluido en el repositorio debe cumplir al menos uno de los siguie
 - documento oficial  
 - informe público  
 
-Toda información debe incluir **referencias trazables**.
+Toda información debe incluir **referencias trazables** y, cuando corresponda, indicar expresamente la fuente jurídica, administrativa o periodística que sustenta la descripción.
 
 ---
 
@@ -206,7 +215,7 @@ python3 src/pipeline.py --input "input/raw/BASE - COMPETENCIA - ENERO Y FEBRERO.
 
 ### Supuesto del primer producto
 
-Para este primer corte, el producto excluye `MONTICELLO` y `XPERTO` del universo “casino/apuesta ilegal”. Ese supuesto está parametrizado en [schema.py](src/schema.py) y puede ajustarse si cambia el criterio editorial.
+Para este primer corte, el producto excluye `MONTICELLO` y `XPERTO` del universo de plataformas observadas en este producto. Ese supuesto está parametrizado en [schema.py](src/schema.py) y puede ajustarse si cambia el criterio editorial.
 
 ---
 
