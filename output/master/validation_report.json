@@ -1,0 +1,39 @@
+{
+  "input_file": "input/raw/BASE - COMPETENCIA - ENERO Y FEBRERO.xlsx",
+  "worksheet_name": "BASE BRUTA",
+  "raw_record_count": 16310,
+  "product_record_count": 15499,
+  "product_brands": [
+    "APUESTAS ROYAL",
+    "BETANO",
+    "BETSSON",
+    "COOLBET",
+    "EPICBET",
+    "JUEGA EN LINEA",
+    "JUGABET",
+    "LATAMWIN",
+    "ROJABET",
+    "TONYBET"
+  ],
+  "excluded_product_brands": [
+    "MONTICELLO",
+    "XPERTO"
+  ],
+  "months": [
+    "2026-01",
+    "2026-02"
+  ],
+  "tables_generated": [
+    "digital.csv",
+    "prensa.csv",
+    "radio.csv",
+    "total.csv",
+    "tv_abierta.csv",
+    "tv_cable.csv",
+    "via_publica.csv"
+  ],
+  "qa_passed": true,
+  "error_count": 0,
+  "errors": [],
+  "generated_at": "2026-03-23T15:56:11Z"
+}
