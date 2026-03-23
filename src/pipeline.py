@@ -728,6 +728,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       min-width: 480px;
       height: auto;
       display: block;
+      overflow: visible;
     }
     .axis-label { fill: var(--muted); font-size: 12px; }
     .axis-line, .grid-line { stroke: var(--grid); stroke-width: 1; }
@@ -947,10 +948,10 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
 
     function renderStackedBars() {
       const svg = document.getElementById("stackedBars");
-      const width = 960;
+      const width = 980;
       const height = Math.max(520, 90 + payload.brand_totals.length * 42);
       svg.setAttribute("viewBox", "0 0 " + width + " " + height);
-      const margin = { top: 24, right: 28, bottom: 36, left: 170 };
+      const margin = { top: 24, right: 118, bottom: 36, left: 170 };
       const plotWidth = width - margin.left - margin.right;
       const rowHeight = 34;
       const maxValue = Math.max(...payload.brand_totals.map((item) => item.total), 1);
@@ -976,7 +977,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
             cursor += segmentWidth;
           }
         });
-        content += '<text class="axis-label" x="' + (margin.left + plotWidth + 8) + '" y="' + (y + 16) + '">' + formatMoney(item.total) + '</text>';
+        content += '<text class="axis-label" x="' + (width - 12) + '" y="' + (y + 16) + '" text-anchor="end">' + formatMoney(item.total) + '</text>';
       });
 
       svg.innerHTML = content;
@@ -987,7 +988,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       const width = 760;
       const height = 560;
       svg.setAttribute("viewBox", "0 0 " + width + " " + height);
-      const margin = { top: 30, right: 120, bottom: 48, left: 64 };
+      const margin = { top: 30, right: 32, bottom: 48, left: 64 };
       const plotWidth = width - margin.left - margin.right;
       const plotHeight = height - margin.top - margin.bottom;
       const maxValue = Math.max(...payload.brand_totals.flatMap((item) => payload.months.map((month) => item.monthly[month] || 0)), 1);
@@ -1018,8 +1019,6 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
         points.forEach((point) => {
           content += '<circle cx="' + point.x + '" cy="' + point.y + '" r="4" fill="' + color + '"></circle>';
         });
-        const lastPoint = points[points.length - 1];
-        content += '<text class="line-label" x="' + (lastPoint.x + 8) + '" y="' + (lastPoint.y + 4) + '" fill="' + color + '">' + item.brand_name + '</text>';
       });
 
       svg.innerHTML = content;
@@ -1045,11 +1044,47 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       mediaFilter.innerHTML = '<option value="">Todos</option>' + media.map((item) => '<option value="' + item + '">' + item + '</option>').join('');
     }
 
+    function aggregatePieceRecords(records) {
+      const groups = new Map();
+      records.forEach((item) => {
+        const key = [
+          item.brand_name || '',
+          item.media_type || '',
+          item.outlet_name || '',
+          item.program_name || '',
+          item.ad_type || '',
+          item.creative_version || '',
+          item.evidence_url || ''
+        ].join('||');
+        if (!groups.has(key)) {
+          groups.set(key, {
+            brand_name: item.brand_name || '',
+            media_type: item.media_type || '',
+            outlet_name: item.outlet_name || '',
+            program_name: item.program_name || '',
+            ad_type: item.ad_type || '',
+            creative_version: item.creative_version || '',
+            evidence_url: item.evidence_url || '',
+            net_investment: 0,
+            observations: 0,
+            first_seen_at: item.observed_at || '',
+            last_seen_at: item.observed_at || ''
+          });
+        }
+        const group = groups.get(key);
+        group.net_investment += Number(item.net_investment || 0);
+        group.observations += 1;
+        if (item.observed_at && (!group.first_seen_at || item.observed_at < group.first_seen_at)) group.first_seen_at = item.observed_at;
+        if (item.observed_at && (!group.last_seen_at || item.observed_at > group.last_seen_at)) group.last_seen_at = item.observed_at;
+      });
+      return Array.from(groups.values());
+    }
+
     function renderPiecesTable() {
       const brandValue = document.getElementById("brandFilter").value;
       const mediaValue = document.getElementById("mediaFilter").value;
       const searchValue = document.getElementById("searchFilter").value.trim().toLowerCase();
-      const rows = pieceRecords
+      const rows = aggregatePieceRecords(pieceRecords)
         .filter((item) => !brandValue || item.brand_name === brandValue)
         .filter((item) => !mediaValue || item.media_type === mediaValue)
         .filter((item) => {
@@ -1061,14 +1096,15 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
 
       const table = document.getElementById("piecesTable");
       table.innerHTML =
-        '<thead><tr><th>Fecha</th><th>Marca</th><th>Medio</th><th>Programa</th><th>Pieza</th><th>Inversion neta</th><th>Evidencia</th></tr></thead>' +
+        '<thead><tr><th>Periodo</th><th>Marca</th><th>Medio</th><th>Programa</th><th>Pieza</th><th>Apariciones</th><th>Inversion neta</th><th>Evidencia</th></tr></thead>' +
         '<tbody>' +
         rows.map((item) => '<tr>' +
-          '<td>' + (item.observed_at || '') + '</td>' +
+          '<td>' + (item.first_seen_at === item.last_seen_at ? (item.first_seen_at || '') : [item.first_seen_at || '', item.last_seen_at || ''].filter(Boolean).join(' a ')) + '</td>' +
           '<td><strong>' + (item.brand_name || '') + '</strong></td>' +
           '<td>' + [item.media_type, item.outlet_name].filter(Boolean).join(' · ') + '</td>' +
           '<td>' + (item.program_name || '') + '</td>' +
           '<td>' + [item.ad_type, item.creative_version].filter(Boolean).join(' / ') + '</td>' +
+          '<td>' + (item.observations || 0) + '</td>' +
           '<td>' + formatMoney(item.net_investment || 0) + '</td>' +
           '<td>' + (item.evidence_url ? '<a href="' + item.evidence_url + '" target="_blank" rel="noreferrer">abrir</a>' : '') + '</td>' +
           '</tr>').join('') +
