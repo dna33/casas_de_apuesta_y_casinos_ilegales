@@ -16,7 +16,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  verify-generated-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Rebuild generated assets
+        run: python3 src/pipeline.py
+
+      - name: Verify committed outputs are up to date
+        run: git diff --exit-code
+
   deploy:
+    needs: verify-generated-assets
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
