@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import csv
+import html
 import json
+import re
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -38,6 +40,7 @@ LINES_SVG_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_por_mes_lineas.svg"
 SITE_INDEX_OUTPUT = SITE_OUTPUT_DIR / "index.html"
 SITE_SUMMARY_OUTPUT = SITE_OUTPUT_DIR / "data" / "inversion_mensual_por_casino_ilegal_summary.json"
 SITE_MASTER_OUTPUT = SITE_OUTPUT_DIR / "data" / "master_investment_detail.json"
+REPO_URL = "https://github.com/dna33/casas_de_apuesta_y_casinos_ilegales"
 
 EXCEL_NS = {
     "main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
@@ -426,9 +429,12 @@ def build_visualization_payload(
         if record["brand_name"] in brands and record["evidence_url"]
     ][:200]
 
+    readme_text = (ROOT_DIR / "README.md").read_text(encoding="utf-8")
+
     return {
         "title": "Inversion mensual por casino de apuesta ilegal",
         "currency": "CLP",
+        "repo_url": REPO_URL,
         "source_file": str(input_path.relative_to(ROOT_DIR)) if input_path.is_relative_to(ROOT_DIR) else str(input_path),
         "source_sheet": RAW_SHEET_NAME,
         "months": months,
@@ -436,6 +442,7 @@ def build_visualization_payload(
         "media_order": media_order,
         "brand_totals": brand_totals,
         "sample_records": sample_records,
+        "readme_html": markdown_to_html(readme_text),
         "qa_passed": qa_report["passed"],
         "qa_checks_run": qa_report["checks_run"],
         "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
@@ -469,6 +476,111 @@ def svg_escape(value: str) -> str:
         .replace('"', "&quot;")
         .replace("'", "&apos;")
     )
+
+
+def render_inline_markdown(text: str) -> str:
+    escaped = html.escape(text)
+    escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
+    escaped = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", escaped)
+    escaped = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", escaped)
+    escaped = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2" target="_blank" rel="noreferrer">\1</a>', escaped)
+    return escaped
+
+
+def markdown_to_html(markdown_text: str) -> str:
+    lines = markdown_text.splitlines()
+    parts: list[str] = []
+    paragraph: list[str] = []
+    list_items: list[str] = []
+    in_code = False
+    code_lines: list[str] = []
+
+    def flush_paragraph() -> None:
+        nonlocal paragraph
+        if paragraph:
+            parts.append(f"<p>{render_inline_markdown(' '.join(paragraph).strip())}</p>")
+            paragraph = []
+
+    def flush_list() -> None:
+        nonlocal list_items
+        if list_items:
+            items = "".join(f"<li>{render_inline_markdown(item)}</li>" for item in list_items)
+            parts.append(f"<ul>{items}</ul>")
+            list_items = []
+
+    def flush_code() -> None:
+        nonlocal code_lines
+        if code_lines:
+            parts.append(f"<pre><code>{html.escape(chr(10).join(code_lines))}</code></pre>")
+            code_lines = []
+
+    for raw_line in lines:
+        line = raw_line.rstrip()
+        stripped = line.strip()
+
+        if stripped.startswith("```"):
+            flush_paragraph()
+            flush_list()
+            if in_code:
+                flush_code()
+                in_code = False
+            else:
+                in_code = True
+            continue
+
+        if in_code:
+            code_lines.append(line)
+            continue
+
+        if not stripped:
+            flush_paragraph()
+            flush_list()
+            continue
+
+        if stripped == "---":
+            flush_paragraph()
+            flush_list()
+            parts.append("<hr>")
+            continue
+
+        if stripped.startswith("#"):
+            flush_paragraph()
+            flush_list()
+            level = min(len(stripped) - len(stripped.lstrip("#")), 6)
+            content = stripped[level:].strip()
+            parts.append(f"<h{level + 1}>{render_inline_markdown(content)}</h{level + 1}>")
+            continue
+
+        if re.match(r"^\d+\.\s+", stripped):
+            flush_paragraph()
+            flush_list()
+            parts.append(f"<p>{render_inline_markdown(stripped)}</p>")
+            continue
+
+        if stripped.startswith("- "):
+            flush_paragraph()
+            list_items.append(stripped[2:].strip())
+            continue
+
+        if stripped.startswith("![") and "](" in stripped:
+            flush_paragraph()
+            flush_list()
+            match = re.match(r"!\[([^\]]*)\]\(([^)]+)\)", stripped)
+            if match:
+                alt_text, src = match.groups()
+                parts.append(
+                    f'<figure><img src="{html.escape(src)}" alt="{html.escape(alt_text)}"><figcaption>{html.escape(alt_text)}</figcaption></figure>'
+                )
+                continue
+
+        paragraph.append(stripped)
+
+    flush_paragraph()
+    flush_list()
+    if in_code:
+        flush_code()
+
+    return "".join(parts)
 
 
 def build_stacked_bars_svg(payload: dict[str, Any]) -> str:
@@ -801,6 +913,57 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       font-size: 0.85rem;
       font-weight: bold;
     }
+    .repo-readme {
+      margin-top: 24px;
+    }
+    .repo-readme .repo-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      font-weight: 700;
+    }
+    .readme-body {
+      border-top: 1px solid var(--grid);
+      padding-top: 18px;
+    }
+    .readme-body h2,
+    .readme-body h3,
+    .readme-body h4 {
+      margin-top: 22px;
+      margin-bottom: 10px;
+    }
+    .readme-body p,
+    .readme-body li {
+      line-height: 1.6;
+      color: #334155;
+    }
+    .readme-body ul {
+      padding-left: 22px;
+      margin: 10px 0 16px;
+    }
+    .readme-body hr {
+      border: 0;
+      border-top: 1px solid var(--grid);
+      margin: 20px 0;
+    }
+    .readme-body pre {
+      overflow: auto;
+      padding: 14px;
+      border-radius: 12px;
+      background: #f6f2e9;
+      border: 1px solid var(--border);
+    }
+    .readme-body code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+    .readme-body img {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: white;
+    }
     @media (max-width: 960px) {
       .hero, .charts, .viewer, .stats { grid-template-columns: 1fr; }
       .page { padding: 18px 14px 40px; }
@@ -883,6 +1046,13 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
         </div>
       </section>
     </section>
+
+    <section class="panel repo-readme">
+      <h2>README del repositorio</h2>
+      <p class="note">Esta seccion replica el README actual del repo para que el contexto quede en la misma pagina.</p>
+      <a class="repo-link" id="repoLink" target="_blank" rel="noreferrer">Abrir repositorio en GitHub</a>
+      <div class="readme-body" id="repoReadme"></div>
+    </section>
   </div>
 
   <script id="payload" type="application/json">__PAYLOAD__</script>
@@ -928,6 +1098,9 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       document.getElementById("metaSource").textContent = payload.source_file;
       document.getElementById("metaSheet").textContent = payload.source_sheet;
       document.getElementById("metaQa").textContent = payload.qa_passed ? "QA OK (" + payload.qa_checks_run + " chequeos)" : "QA con observaciones";
+      document.getElementById("repoLink").href = payload.repo_url;
+      document.getElementById("repoLink").textContent = payload.repo_url;
+      document.getElementById("repoReadme").innerHTML = payload.readme_html;
 
       const totalInvestment = payload.brand_totals.reduce((sum, item) => sum + item.total, 0);
       const topBrand = payload.brand_totals[0];
