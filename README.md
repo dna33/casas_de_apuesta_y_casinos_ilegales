@@ -16,6 +16,16 @@ Archivos disponibles:
 - [digital.csv](output/data_products/inversion_mensual_por_casino_ilegal/digital.csv): inversión mensual por marca en digital.
 - [prensa.csv](output/data_products/inversion_mensual_por_casino_ilegal/prensa.csv): inversión mensual por marca en prensa.
 
+## Visualizaciones simples
+
+Formatos pensados para abrir en un navegador comun, sin software especializado:
+
+- [inversion_mensual_por_casino_ilegal.html](output/visualizations/inversion_mensual_por_casino_ilegal.html): una sola pagina con barras stackeadas por marca, lineas por mes, tabla resumen y explorador de piezas.
+- [inversion_mensual_por_casino_ilegal_summary.json](output/visualizations/inversion_mensual_por_casino_ilegal_summary.json): resumen estructurado para reutilizar los graficos o alimentar otras visualizaciones.
+- [master_investment_detail.json](output/master/master_investment_detail.json): JSON maestro detallado que puede cargarse dentro de la pagina HTML para revisar piezas, medios, programas y enlaces de evidencia.
+
+La pagina HTML ya trae un resumen embebido para que abra directo. Ademas permite cargar manualmente el `master_investment_detail.json` y mostrar registros con sus enlaces de evidencia, que en varios casos apuntan a la pieza misma.
+
 Repositorio abierto destinado a recopilar, verificar y publicar información sobre **publicidad y presencia en medios chilenos de casinos y casas de apuestas online que no cuentan con autorización legal en Chile**.
 
 El objetivo es **orientar a la ciudadanía**, periodistas, investigadores y autoridades respecto de si la publicidad de apuestas que aparece en transmisiones deportivas, camisetas, medios digitales o eventos corresponde o no a **actividades autorizadas por la legislación chilena**.

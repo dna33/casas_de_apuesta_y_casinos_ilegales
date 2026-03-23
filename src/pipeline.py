@@ -27,8 +27,11 @@ PROCESSED_DETAIL_OUTPUT = ROOT_DIR / "input" / "processed" / "latest_base_bruta.
 MASTER_CSV_OUTPUT = ROOT_DIR / "output" / "master" / "master_investment_detail.csv"
 MASTER_JSON_OUTPUT = ROOT_DIR / "output" / "master" / "master_investment_detail.json"
 PRODUCT_OUTPUT_DIR = ROOT_DIR / "output" / "data_products" / "inversion_mensual_por_casino_ilegal"
+VISUALIZATION_OUTPUT_DIR = ROOT_DIR / "output" / "visualizations"
 VALIDATION_OUTPUT = ROOT_DIR / "output" / "master" / "validation_report.json"
 QA_OUTPUT = ROOT_DIR / "output" / "master" / "qa_report.json"
+VISUALIZATION_HTML_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_mensual_por_casino_ilegal.html"
+VISUALIZATION_DATA_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_mensual_por_casino_ilegal_summary.json"
 
 EXCEL_NS = {
     "main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
@@ -371,6 +374,580 @@ def run_qa(
     }
 
 
+def build_visualization_payload(
+    input_path: Path,
+    records: list[dict[str, str]],
+    months: list[str],
+    brands: list[str],
+    aggregations: dict[str, dict[str, dict[str, float]]],
+    qa_report: dict[str, Any],
+) -> dict[str, Any]:
+    media_order = [slug for slug in ("tv_abierta", "tv_cable", "radio", "via_publica", "digital", "prensa") if slug in aggregations]
+    brand_totals: list[dict[str, Any]] = []
+
+    for brand in brands:
+        media_breakdown = {}
+        total = 0.0
+        for media_slug in media_order:
+            amount = sum(aggregations.get(media_slug, {}).get(brand, {}).get(month, 0.0) for month in months)
+            media_breakdown[media_slug] = round(amount, 2)
+            total += amount
+        monthly_values = {month: round(aggregations["total"].get(brand, {}).get(month, 0.0), 2) for month in months}
+        brand_totals.append(
+            {
+                "brand_name": brand,
+                "total": round(total, 2),
+                "monthly": monthly_values,
+                "media_breakdown": media_breakdown,
+            }
+        )
+
+    brand_totals.sort(key=lambda item: item["total"], reverse=True)
+
+    sample_records = [
+        {
+            "brand_name": record["brand_name"],
+            "observed_at": record["observed_at"],
+            "media_type": record["media_type"],
+            "outlet_name": record["outlet_name"],
+            "program_name": record["program_name"],
+            "ad_type": record["ad_type"],
+            "creative_version": record["creative_version"],
+            "evidence_url": record["evidence_url"],
+            "net_investment": round(float(record["net_investment"]), 2),
+        }
+        for record in records
+        if record["brand_name"] in brands and record["evidence_url"]
+    ][:200]
+
+    return {
+        "title": "Inversion mensual por casino de apuesta ilegal",
+        "currency": "CLP",
+        "source_file": str(input_path.relative_to(ROOT_DIR)) if input_path.is_relative_to(ROOT_DIR) else str(input_path),
+        "source_sheet": RAW_SHEET_NAME,
+        "months": months,
+        "brands": brands,
+        "media_order": media_order,
+        "brand_totals": brand_totals,
+        "sample_records": sample_records,
+        "qa_passed": qa_report["passed"],
+        "qa_checks_run": qa_report["checks_run"],
+        "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+    }
+
+
+def build_visualization_html(payload: dict[str, Any]) -> str:
+    payload_json = json.dumps(payload, ensure_ascii=True)
+    return """<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visualizacion: Inversion mensual por casino de apuesta ilegal</title>
+  <style>
+    :root {
+      --bg: #f4f1e8;
+      --panel: #fffdf8;
+      --ink: #1f2937;
+      --muted: #5f6b7a;
+      --accent: #8b1e3f;
+      --accent-2: #0b6e4f;
+      --border: #d7d2c7;
+      --grid: #e8e3d8;
+      --shadow: 0 18px 40px rgba(31, 41, 55, 0.08);
+      --tv_abierta: #b91c1c;
+      --tv_cable: #f97316;
+      --radio: #0f766e;
+      --via_publica: #7c3aed;
+      --digital: #2563eb;
+      --prensa: #475569;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(139, 30, 63, 0.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(11, 110, 79, 0.10), transparent 24%),
+        linear-gradient(180deg, #f6f2e9 0%, #f3efe5 100%);
+    }
+    a { color: var(--accent); }
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+    h1, h2, h3 { margin: 0 0 10px; }
+    h1 { font-size: clamp(2rem, 4vw, 3.4rem); line-height: 0.95; }
+    h2 { font-size: 1.35rem; }
+    h3 { font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    p { margin: 0 0 10px; line-height: 1.5; }
+    .lede { font-size: 1.08rem; max-width: 58ch; }
+    .meta dt { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .meta dd { margin: 4px 0 14px; font-weight: bold; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin: 14px 0 26px;
+    }
+    .stat {
+      background: rgba(246, 242, 233, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .stat .label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+    .stat strong { font-size: 1.4rem; }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      margin-top: 12px;
+    }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.92rem;
+    }
+    .legend i {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .charts {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .chart-wrap {
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    svg {
+      width: 100%;
+      min-width: 480px;
+      height: auto;
+      display: block;
+    }
+    .axis-label { fill: var(--muted); font-size: 12px; }
+    .axis-line, .grid-line { stroke: var(--grid); stroke-width: 1; }
+    .line-label { font-size: 11px; font-weight: bold; }
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+      background: white;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--grid);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      position: sticky;
+      top: 0;
+      background: #faf7f0;
+    }
+    .viewer {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      margin-top: 24px;
+    }
+    .controls {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+    .control {
+      display: grid;
+      gap: 6px;
+    }
+    .control label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .control select, .control input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: white;
+      font: inherit;
+    }
+    .note {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(11, 110, 79, 0.1);
+      color: var(--accent-2);
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+    @media (max-width: 960px) {
+      .hero, .charts, .viewer, .stats { grid-template-columns: 1fr; }
+      .page { padding: 18px 14px 40px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="panel">
+        <h3>Visualizacion simple</h3>
+        <h1>Inversion mensual por marca en una sola pagina</h1>
+        <p class="lede">Esta pagina esta pensada para abrirse directamente en un navegador comun. Incluye un grafico de barras stackeadas por marca, un grafico de lineas por mes y un explorador opcional de piezas si se carga el JSON maestro.</p>
+        <div class="stats" id="stats"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <aside class="panel">
+        <h3>Contexto</h3>
+        <dl class="meta">
+          <dt>Moneda</dt>
+          <dd id="metaCurrency"></dd>
+          <dt>Fuente</dt>
+          <dd id="metaSource"></dd>
+          <dt>Hoja</dt>
+          <dd id="metaSheet"></dd>
+          <dt>QA</dt>
+          <dd><span class="pill" id="metaQa"></span></dd>
+        </dl>
+      </aside>
+    </section>
+
+    <section class="charts">
+      <article class="panel">
+        <h2>Barras stackeadas por marca</h2>
+        <p class="note">Cada barra suma la inversion total por marca y la divide por tipo de medio.</p>
+        <div class="chart-wrap"><svg id="stackedBars" viewBox="0 0 960 560" aria-label="Grafico de barras stackeadas"></svg></div>
+      </article>
+      <article class="panel">
+        <h2>Lineas por mes</h2>
+        <p class="note">Evolucion mensual de la inversion total por marca segun los meses disponibles en el workbook.</p>
+        <div class="chart-wrap"><svg id="lineChart" viewBox="0 0 760 560" aria-label="Grafico de lineas"></svg></div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h2>Tabla resumen</h2>
+      <p class="note">Totales acumulados por marca en CLP.</p>
+      <div class="table-wrap">
+        <table id="summaryTable"></table>
+      </div>
+    </section>
+
+    <section class="viewer">
+      <aside class="panel controls">
+        <div>
+          <h2>Explorador de piezas</h2>
+          <p class="note">Para ver piezas y evidencia, carga el archivo <code>output/master/master_investment_detail.json</code> desde tu computador. Esto funciona incluso si abres esta pagina localmente.</p>
+        </div>
+        <div class="control">
+          <label for="jsonLoader">Cargar JSON maestro</label>
+          <input id="jsonLoader" type="file" accept=".json,application/json">
+        </div>
+        <div class="control">
+          <label for="brandFilter">Marca</label>
+          <select id="brandFilter"><option value="">Todas</option></select>
+        </div>
+        <div class="control">
+          <label for="mediaFilter">Tipo de medio</label>
+          <select id="mediaFilter"><option value="">Todos</option></select>
+        </div>
+        <div class="control">
+          <label for="searchFilter">Buscar texto</label>
+          <input id="searchFilter" type="search" placeholder="medio, programa, version">
+        </div>
+        <p class="note" id="piecesStatus">Sin JSON cargado. Debajo se muestran registros de ejemplo incluidos en el resumen.</p>
+      </aside>
+      <section class="panel">
+        <div class="table-wrap">
+          <table id="piecesTable"></table>
+        </div>
+      </section>
+    </section>
+  </div>
+
+  <script id="payload" type="application/json">__PAYLOAD__</script>
+  <script>
+    const payload = JSON.parse(document.getElementById("payload").textContent);
+    const numberFormatter = new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 });
+    const compactFormatter = new Intl.NumberFormat("es-CL", { notation: "compact", maximumFractionDigits: 1 });
+    const monthFormatter = new Intl.DateTimeFormat("es-CL", { month: "short", year: "numeric" });
+    let pieceRecords = payload.sample_records.slice();
+    let usingEmbeddedSamples = true;
+
+    function formatMoney(value) {
+      return "$" + numberFormatter.format(Math.round(value));
+    }
+
+    function formatCompact(value) {
+      return "$" + compactFormatter.format(value);
+    }
+
+    function prettyMonth(value) {
+      const [year, month] = value.split("-").map(Number);
+      return monthFormatter.format(new Date(year, month - 1, 1));
+    }
+
+    function mediaLabel(slug) {
+      const labels = {
+        tv_abierta: "TV abierta",
+        tv_cable: "TV cable",
+        radio: "Radio",
+        via_publica: "Via publica",
+        digital: "Digital",
+        prensa: "Prensa"
+      };
+      return labels[slug] || slug;
+    }
+
+    function colorFor(slug) {
+      return getComputedStyle(document.documentElement).getPropertyValue("--" + slug).trim() || "#64748b";
+    }
+
+    function setMeta() {
+      document.getElementById("metaCurrency").textContent = payload.currency;
+      document.getElementById("metaSource").textContent = payload.source_file;
+      document.getElementById("metaSheet").textContent = payload.source_sheet;
+      document.getElementById("metaQa").textContent = payload.qa_passed ? "QA OK (" + payload.qa_checks_run + " chequeos)" : "QA con observaciones";
+
+      const totalInvestment = payload.brand_totals.reduce((sum, item) => sum + item.total, 0);
+      const topBrand = payload.brand_totals[0];
+      const stats = [
+        { label: "Marcas", value: payload.brands.length },
+        { label: "Meses", value: payload.months.length },
+        { label: "Inversion total", value: formatCompact(totalInvestment) },
+        { label: "Marca lider", value: topBrand.brand_name + " · " + formatCompact(topBrand.total) }
+      ];
+      document.getElementById("stats").innerHTML = stats.map((item) =>
+        '<div class="stat"><span class="label">' + item.label + '</span><strong>' + item.value + '</strong></div>'
+      ).join("");
+
+      document.getElementById("legend").innerHTML = payload.media_order.map((slug) =>
+        '<span><i style="background:' + colorFor(slug) + '"></i>' + mediaLabel(slug) + '</span>'
+      ).join("");
+    }
+
+    function renderStackedBars() {
+      const svg = document.getElementById("stackedBars");
+      const width = 960;
+      const height = Math.max(520, 90 + payload.brand_totals.length * 42);
+      svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+      const margin = { top: 24, right: 28, bottom: 36, left: 170 };
+      const plotWidth = width - margin.left - margin.right;
+      const rowHeight = 34;
+      const maxValue = Math.max(...payload.brand_totals.map((item) => item.total), 1);
+      const ticks = 5;
+      let content = "";
+
+      for (let i = 0; i <= ticks; i += 1) {
+        const value = maxValue * i / ticks;
+        const x = margin.left + (plotWidth * i / ticks);
+        content += '<line class="grid-line" x1="' + x + '" y1="' + margin.top + '" x2="' + x + '" y2="' + (height - margin.bottom) + '"></line>';
+        content += '<text class="axis-label" x="' + x + '" y="' + (height - 12) + '" text-anchor="middle">' + formatCompact(value) + '</text>';
+      }
+
+      payload.brand_totals.forEach((item, index) => {
+        const y = margin.top + index * rowHeight + 4;
+        let cursor = margin.left;
+        content += '<text class="axis-label" x="' + (margin.left - 12) + '" y="' + (y + 16) + '" text-anchor="end">' + item.brand_name + '</text>';
+        payload.media_order.forEach((slug) => {
+          const value = item.media_breakdown[slug] || 0;
+          const segmentWidth = plotWidth * (value / maxValue);
+          if (segmentWidth > 0) {
+            content += '<rect x="' + cursor + '" y="' + y + '" width="' + segmentWidth + '" height="22" rx="4" fill="' + colorFor(slug) + '"></rect>';
+            cursor += segmentWidth;
+          }
+        });
+        content += '<text class="axis-label" x="' + (margin.left + plotWidth + 8) + '" y="' + (y + 16) + '">' + formatMoney(item.total) + '</text>';
+      });
+
+      svg.innerHTML = content;
+    }
+
+    function renderLineChart() {
+      const svg = document.getElementById("lineChart");
+      const width = 760;
+      const height = 560;
+      svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+      const margin = { top: 30, right: 120, bottom: 48, left: 64 };
+      const plotWidth = width - margin.left - margin.right;
+      const plotHeight = height - margin.top - margin.bottom;
+      const maxValue = Math.max(...payload.brand_totals.flatMap((item) => payload.months.map((month) => item.monthly[month] || 0)), 1);
+      let content = "";
+
+      for (let i = 0; i <= 4; i += 1) {
+        const y = margin.top + plotHeight - (plotHeight * i / 4);
+        const value = maxValue * i / 4;
+        content += '<line class="grid-line" x1="' + margin.left + '" y1="' + y + '" x2="' + (width - margin.right) + '" y2="' + y + '"></line>';
+        content += '<text class="axis-label" x="' + (margin.left - 10) + '" y="' + (y + 4) + '" text-anchor="end">' + formatCompact(value) + '</text>';
+      }
+
+      payload.months.forEach((month, index) => {
+        const x = margin.left + (payload.months.length === 1 ? plotWidth / 2 : plotWidth * index / (payload.months.length - 1));
+        content += '<line class="axis-line" x1="' + x + '" y1="' + margin.top + '" x2="' + x + '" y2="' + (height - margin.bottom) + '"></line>';
+        content += '<text class="axis-label" x="' + x + '" y="' + (height - 16) + '" text-anchor="middle">' + prettyMonth(month) + '</text>';
+      });
+
+      payload.brand_totals.forEach((item) => {
+        const color = colorFor(payload.media_order[payload.brand_totals.indexOf(item) % payload.media_order.length] || "digital");
+        const points = payload.months.map((month, index) => {
+          const x = margin.left + (payload.months.length === 1 ? plotWidth / 2 : plotWidth * index / (payload.months.length - 1));
+          const value = item.monthly[month] || 0;
+          const y = margin.top + plotHeight - (plotHeight * value / maxValue);
+          return { x, y, value };
+        });
+        content += '<polyline fill="none" stroke="' + color + '" stroke-width="2.5" points="' + points.map((p) => p.x + ',' + p.y).join(' ') + '"></polyline>';
+        points.forEach((point) => {
+          content += '<circle cx="' + point.x + '" cy="' + point.y + '" r="4" fill="' + color + '"></circle>';
+        });
+        const lastPoint = points[points.length - 1];
+        content += '<text class="line-label" x="' + (lastPoint.x + 8) + '" y="' + (lastPoint.y + 4) + '" fill="' + color + '">' + item.brand_name + '</text>';
+      });
+
+      svg.innerHTML = content;
+    }
+
+    function renderSummaryTable() {
+      const table = document.getElementById("summaryTable");
+      const header = ['<thead><tr><th>Marca</th>', ...payload.months.map((month) => '<th>' + prettyMonth(month) + '</th>'), '<th>Total</th></tr></thead>'].join("");
+      const rows = payload.brand_totals.map((item) => {
+        return '<tr><td><strong>' + item.brand_name + '</strong></td>' +
+          payload.months.map((month) => '<td>' + formatMoney(item.monthly[month] || 0) + '</td>').join('') +
+          '<td>' + formatMoney(item.total) + '</td></tr>';
+      }).join("");
+      table.innerHTML = header + '<tbody>' + rows + '</tbody>';
+    }
+
+    function buildPiecesFilters(records) {
+      const brandFilter = document.getElementById("brandFilter");
+      const mediaFilter = document.getElementById("mediaFilter");
+      const brands = Array.from(new Set(records.map((item) => item.brand_name).filter(Boolean))).sort();
+      const media = Array.from(new Set(records.map((item) => item.media_type).filter(Boolean))).sort();
+      brandFilter.innerHTML = '<option value="">Todas</option>' + brands.map((item) => '<option value="' + item + '">' + item + '</option>').join('');
+      mediaFilter.innerHTML = '<option value="">Todos</option>' + media.map((item) => '<option value="' + item + '">' + item + '</option>').join('');
+    }
+
+    function renderPiecesTable() {
+      const brandValue = document.getElementById("brandFilter").value;
+      const mediaValue = document.getElementById("mediaFilter").value;
+      const searchValue = document.getElementById("searchFilter").value.trim().toLowerCase();
+      const rows = pieceRecords
+        .filter((item) => !brandValue || item.brand_name === brandValue)
+        .filter((item) => !mediaValue || item.media_type === mediaValue)
+        .filter((item) => {
+          if (!searchValue) return true;
+          return [item.outlet_name, item.program_name, item.creative_version, item.ad_type].join(' ').toLowerCase().includes(searchValue);
+        })
+        .slice(0, 80);
+
+      const table = document.getElementById("piecesTable");
+      table.innerHTML =
+        '<thead><tr><th>Fecha</th><th>Marca</th><th>Medio</th><th>Programa</th><th>Pieza</th><th>Inversion neta</th><th>Evidencia</th></tr></thead>' +
+        '<tbody>' +
+        rows.map((item) => '<tr>' +
+          '<td>' + (item.observed_at || '') + '</td>' +
+          '<td><strong>' + (item.brand_name || '') + '</strong></td>' +
+          '<td>' + [item.media_type, item.outlet_name].filter(Boolean).join(' · ') + '</td>' +
+          '<td>' + (item.program_name || '') + '</td>' +
+          '<td>' + [item.ad_type, item.creative_version].filter(Boolean).join(' / ') + '</td>' +
+          '<td>' + formatMoney(item.net_investment || 0) + '</td>' +
+          '<td>' + (item.evidence_url ? '<a href="' + item.evidence_url + '" target="_blank" rel="noreferrer">abrir</a>' : '') + '</td>' +
+          '</tr>').join('') +
+        '</tbody>';
+
+      document.getElementById("piecesStatus").textContent = rows.length + " registros visibles" +
+        (usingEmbeddedSamples ? " (muestra embebida)" : " (desde JSON cargado)");
+    }
+
+    function bindJsonLoader() {
+      const loader = document.getElementById("jsonLoader");
+      loader.addEventListener("change", async (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        pieceRecords = parsed.map((item) => ({
+          brand_name: item.brand_name,
+          observed_at: item.observed_at,
+          media_type: item.media_type,
+          outlet_name: item.outlet_name,
+          program_name: item.program_name,
+          ad_type: item.ad_type,
+          creative_version: item.creative_version,
+          evidence_url: item.evidence_url,
+          net_investment: Number(item.net_investment || 0)
+        }));
+        usingEmbeddedSamples = false;
+        buildPiecesFilters(pieceRecords);
+        renderPiecesTable();
+      });
+
+      ["brandFilter", "mediaFilter", "searchFilter"].forEach((id) => {
+        document.getElementById(id).addEventListener("input", renderPiecesTable);
+      });
+    }
+
+    setMeta();
+    renderStackedBars();
+    renderLineChart();
+    renderSummaryTable();
+    buildPiecesFilters(pieceRecords);
+    renderPiecesTable();
+    bindJsonLoader();
+  </script>
+</body>
+</html>
+""".replace("__PAYLOAD__", payload_json)
+
+
+def write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
 def write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
@@ -448,6 +1025,10 @@ def main() -> int:
     write_json(QA_OUTPUT, qa_report)
     if not qa_report["passed"]:
         raise SystemExit("QA failed. See output/master/qa_report.json for details.")
+
+    visualization_payload = build_visualization_payload(args.input, records, months, brands, aggregations, qa_report)
+    write_json(VISUALIZATION_DATA_OUTPUT, visualization_payload)
+    write_text(VISUALIZATION_HTML_OUTPUT, build_visualization_html(visualization_payload))
 
     write_json(
         VALIDATION_OUTPUT,
