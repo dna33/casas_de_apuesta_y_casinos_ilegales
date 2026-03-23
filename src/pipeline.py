@@ -661,11 +661,11 @@ def build_stacked_bars_svg(payload: dict[str, Any]) -> str:
 def build_lines_svg(payload: dict[str, Any]) -> str:
     palette = ["#8b1e3f", "#0b6e4f", "#2563eb", "#f97316", "#7c3aed", "#b91c1c", "#0f766e", "#475569", "#d97706", "#4f46e5"]
     width = 1280
-    height = 760
+    height = 900
     margin_left = 82
-    margin_right = 220
+    margin_right = 48
     margin_top = 80
-    margin_bottom = 70
+    margin_bottom = 190
     plot_width = width - margin_left - margin_right
     plot_height = height - margin_top - margin_bottom
     max_value = max(
@@ -709,15 +709,13 @@ def build_lines_svg(payload: dict[str, Any]) -> str:
         parts.append(f'<polyline fill="none" stroke="{color}" stroke-width="3" points="{point_string}"/>')
         for x, y in points:
             parts.append(f'<circle cx="{x}" cy="{y}" r="4.5" fill="{color}"/>')
-        last_x, last_y = points[-1]
+        legend_x = 70 + (index % 3) * 360
+        legend_row = index // 3
+        legend_y = height - 110 + legend_row * 32
+        parts.append(f'<rect x="{legend_x}" y="{legend_y - 12}" width="14" height="14" rx="7" fill="{color}"/>')
         parts.append(
-            f'<text x="{last_x + 12}" y="{last_y + 5}" font-family="Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="700" fill="{color}">{svg_escape(item["brand_name"])}</text>'
+            f'<text x="{legend_x + 22}" y="{legend_y}" font-family="Helvetica Neue, Arial, sans-serif" font-size="15" fill="#334155">{svg_escape(item["brand_name"])}</text>'
         )
-        parts.append(f'<rect x="{width - margin_right + 20}" y="{legend_y - 12}" width="14" height="14" rx="7" fill="{color}"/>')
-        parts.append(
-            f'<text x="{width - margin_right + 42}" y="{legend_y}" font-family="Helvetica Neue, Arial, sans-serif" font-size="15" fill="#334155">{svg_escape(item["brand_name"])}</text>'
-        )
-        legend_y += 28
 
     parts.append("</svg>")
     return "".join(parts)
@@ -820,6 +818,25 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       font-size: 0.92rem;
     }
     .legend i {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .line-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      margin-top: 14px;
+    }
+    .line-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: #334155;
+    }
+    .line-legend i {
       width: 12px;
       height: 12px;
       border-radius: 999px;
@@ -1005,6 +1022,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
         <h2>Lineas por mes</h2>
         <p class="note">Evolucion mensual de la inversion total por marca segun los meses disponibles en el workbook.</p>
         <div class="chart-wrap"><svg id="lineChart" viewBox="0 0 760 560" aria-label="Grafico de lineas"></svg></div>
+        <div class="line-legend" id="lineLegend"></div>
       </article>
     </section>
 
@@ -1091,6 +1109,11 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
 
     function colorFor(slug) {
       return getComputedStyle(document.documentElement).getPropertyValue("--" + slug).trim() || "#64748b";
+    }
+
+    function brandColor(index) {
+      const palette = ["#8b1e3f", "#0b6e4f", "#2563eb", "#f97316", "#7c3aed", "#b91c1c", "#0f766e", "#475569", "#d97706", "#4f46e5"];
+      return palette[index % palette.length];
     }
 
     function setMeta() {
@@ -1181,7 +1204,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       });
 
       payload.brand_totals.forEach((item) => {
-        const color = colorFor(payload.media_order[payload.brand_totals.indexOf(item) % payload.media_order.length] || "digital");
+        const color = brandColor(payload.brand_totals.indexOf(item));
         const points = payload.months.map((month, index) => {
           const x = margin.left + (payload.months.length === 1 ? plotWidth / 2 : plotWidth * index / (payload.months.length - 1));
           const value = item.monthly[month] || 0;
@@ -1195,6 +1218,9 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       });
 
       svg.innerHTML = content;
+      document.getElementById("lineLegend").innerHTML = payload.brand_totals.map((item, index) =>
+        '<span><i style="background:' + brandColor(index) + '"></i>' + item.brand_name + '</span>'
+      ).join('');
     }
 
     function renderSummaryTable() {
