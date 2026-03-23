@@ -4,17 +4,17 @@
 
 Primer data product publicado: inversión mensual por marca en publicidad de apuestas y casinos online observados en Chile.
 
-Los montos están expresados en pesos chilenos (`CLP`) y provienen del archivo fuente [BASE - COMPETENCIA - ENERO Y FEBRERO.xlsx](/Users/demianarancibia/PycharmProjects/casas_de_apuesta_y_casinos_ilegales/input/raw/BASE%20-%20COMPETENCIA%20-%20ENERO%20Y%20FEBRERO.xlsx), recibido en crudo y procesado desde la hoja `BASE BRUTA`.
+Los montos están expresados en pesos chilenos (`CLP`) y provienen del archivo fuente [BASE - COMPETENCIA - ENERO Y FEBRERO.xlsx](input/raw/BASE%20-%20COMPETENCIA%20-%20ENERO%20Y%20FEBRERO.xlsx), recibido en crudo y procesado desde la hoja `BASE BRUTA`.
 
 Archivos disponibles:
 
-- [total.csv](/Users/demianarancibia/PycharmProjects/casas_de_apuesta_y_casinos_ilegales/output/data_products/inversion_mensual_por_casino_ilegal/total.csv): inversión mensual total por marca.
-- [tv_abierta.csv](/Users/demianarancibia/PycharmProjects/casas_de_apuesta_y_casinos_ilegales/output/data_products/inversion_mensual_por_casino_ilegal/tv_abierta.csv): inversión mensual por marca en televisión abierta.
-- [tv_cable.csv](/Users/demianarancibia/PycharmProjects/casas_de_apuesta_y_casinos_ilegales/output/data_products/inversion_mensual_por_casino_ilegal/tv_cable.csv): inversión mensual por marca en televisión de cable.
-- [radio.csv](/Users/demianarancibia/PycharmProjects/casas_de_apuesta_y_casinos_ilegales/output/data_products/inversion_mensual_por_casino_ilegal/radio.csv): inversión mensual por marca en radio.
-- [via_publica.csv](/Users/demianarancibia/PycharmProjects/casas_de_apuesta_y_casinos_ilegales/output/data_products/inversion_mensual_por_casino_ilegal/via_publica.csv): inversión mensual por marca en vía pública.
-- [digital.csv](/Users/demianarancibia/PycharmProjects/casas_de_apuesta_y_casinos_ilegales/output/data_products/inversion_mensual_por_casino_ilegal/digital.csv): inversión mensual por marca en digital.
-- [prensa.csv](/Users/demianarancibia/PycharmProjects/casas_de_apuesta_y_casinos_ilegales/output/data_products/inversion_mensual_por_casino_ilegal/prensa.csv): inversión mensual por marca en prensa.
+- [total.csv](output/data_products/inversion_mensual_por_casino_ilegal/total.csv): inversión mensual total por marca.
+- [tv_abierta.csv](output/data_products/inversion_mensual_por_casino_ilegal/tv_abierta.csv): inversión mensual por marca en televisión abierta.
+- [tv_cable.csv](output/data_products/inversion_mensual_por_casino_ilegal/tv_cable.csv): inversión mensual por marca en televisión de cable.
+- [radio.csv](output/data_products/inversion_mensual_por_casino_ilegal/radio.csv): inversión mensual por marca en radio.
+- [via_publica.csv](output/data_products/inversion_mensual_por_casino_ilegal/via_publica.csv): inversión mensual por marca en vía pública.
+- [digital.csv](output/data_products/inversion_mensual_por_casino_ilegal/digital.csv): inversión mensual por marca en digital.
+- [prensa.csv](output/data_products/inversion_mensual_por_casino_ilegal/prensa.csv): inversión mensual por marca en prensa.
 
 Repositorio abierto destinado a recopilar, verificar y publicar información sobre **publicidad y presencia en medios chilenos de casinos y casas de apuestas online que no cuentan con autorización legal en Chile**.
 
@@ -189,7 +189,7 @@ python3 src/pipeline.py --input "input/raw/BASE - COMPETENCIA - ENERO Y FEBRERO.
 
 ### Supuesto del primer producto
 
-Para este primer corte, el producto excluye `MONTICELLO` y `XPERTO` del universo “casino/apuesta ilegal”. Ese supuesto está parametrizado en [schema.py](/Users/demianarancibia/PycharmProjects/casas_de_apuesta_y_casinos_ilegales/src/schema.py) y puede ajustarse si cambia el criterio editorial.
+Para este primer corte, el producto excluye `MONTICELLO` y `XPERTO` del universo “casino/apuesta ilegal”. Ese supuesto está parametrizado en [schema.py](src/schema.py) y puede ajustarse si cambia el criterio editorial.
 
 ---
 

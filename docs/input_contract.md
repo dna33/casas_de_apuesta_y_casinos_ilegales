@@ -56,7 +56,7 @@ Cada CSV tiene una fila por marca y una columna por mes observado, más una colu
 
 ## Regla editorial actual
 
-Para este primer producto, se excluyen `MONTICELLO` y `XPERTO` del universo publicado como “casino/apuesta ilegal”. La lista vive en [schema.py](/Users/demianarancibia/PycharmProjects/casas_de_apuesta_y_casinos_ilegales/src/schema.py).
+Para este primer producto, se excluyen `MONTICELLO` y `XPERTO` del universo publicado como “casino/apuesta ilegal”. La lista vive en [schema.py](../src/schema.py).
 
 ## Validación
 
