@@ -20,11 +20,18 @@ Archivos disponibles:
 
 Formatos pensados para abrir en un navegador comun, sin software especializado:
 
+- [Sitio interactivo en GitHub Pages](https://dna33.github.io/casas_de_apuesta_y_casinos_ilegales/): version publicada de la visualizacion en una sola pagina, con carga automatica del JSON maestro cuando el sitio esta desplegado.
 - [inversion_mensual_por_casino_ilegal.html](output/visualizations/inversion_mensual_por_casino_ilegal.html): una sola pagina con barras stackeadas por marca, lineas por mes, tabla resumen y explorador de piezas.
 - [inversion_mensual_por_casino_ilegal_summary.json](output/visualizations/inversion_mensual_por_casino_ilegal_summary.json): resumen estructurado para reutilizar los graficos o alimentar otras visualizaciones.
 - [master_investment_detail.json](output/master/master_investment_detail.json): JSON maestro detallado que puede cargarse dentro de la pagina HTML para revisar piezas, medios, programas y enlaces de evidencia.
 
 La pagina HTML ya trae un resumen embebido para que abra directo. Ademas permite cargar manualmente el `master_investment_detail.json` y mostrar registros con sus enlaces de evidencia, que en varios casos apuntan a la pieza misma.
+
+Vista previa directa en GitHub:
+
+![Barras stackeadas por marca](output/visualizations/inversion_por_marca_stackeada.svg)
+
+![Lineas por mes](output/visualizations/inversion_por_mes_lineas.svg)
 
 Repositorio abierto destinado a recopilar, verificar y publicar información sobre **publicidad y presencia en medios chilenos de casinos y casas de apuestas online que no cuentan con autorización legal en Chile**.
 

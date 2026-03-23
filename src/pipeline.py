@@ -28,10 +28,16 @@ MASTER_CSV_OUTPUT = ROOT_DIR / "output" / "master" / "master_investment_detail.c
 MASTER_JSON_OUTPUT = ROOT_DIR / "output" / "master" / "master_investment_detail.json"
 PRODUCT_OUTPUT_DIR = ROOT_DIR / "output" / "data_products" / "inversion_mensual_por_casino_ilegal"
 VISUALIZATION_OUTPUT_DIR = ROOT_DIR / "output" / "visualizations"
+SITE_OUTPUT_DIR = ROOT_DIR / "output" / "site"
 VALIDATION_OUTPUT = ROOT_DIR / "output" / "master" / "validation_report.json"
 QA_OUTPUT = ROOT_DIR / "output" / "master" / "qa_report.json"
 VISUALIZATION_HTML_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_mensual_por_casino_ilegal.html"
 VISUALIZATION_DATA_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_mensual_por_casino_ilegal_summary.json"
+STACKED_SVG_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_por_marca_stackeada.svg"
+LINES_SVG_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_por_mes_lineas.svg"
+SITE_INDEX_OUTPUT = SITE_OUTPUT_DIR / "index.html"
+SITE_SUMMARY_OUTPUT = SITE_OUTPUT_DIR / "data" / "inversion_mensual_por_casino_ilegal_summary.json"
+SITE_MASTER_OUTPUT = SITE_OUTPUT_DIR / "data" / "master_investment_detail.json"
 
 EXCEL_NS = {
     "main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
@@ -436,6 +442,175 @@ def build_visualization_payload(
     }
 
 
+def svg_currency(value: float) -> str:
+    return "$" + f"{round(value):,}".replace(",", ".")
+
+
+def svg_compact(value: float) -> str:
+    thresholds = (
+        (1_000_000_000, "MM"),
+        (1_000_000, "M"),
+        (1_000, "mil"),
+    )
+    absolute = abs(value)
+    for threshold, suffix in thresholds:
+        if absolute >= threshold:
+            scaled = value / threshold
+            text = f"{scaled:.1f}".rstrip("0").rstrip(".")
+            return f"${text} {suffix}"
+    return svg_currency(value)
+
+
+def svg_escape(value: str) -> str:
+    return (
+        value.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&apos;")
+    )
+
+
+def build_stacked_bars_svg(payload: dict[str, Any]) -> str:
+    media_colors = {
+        "tv_abierta": "#b91c1c",
+        "tv_cable": "#f97316",
+        "radio": "#0f766e",
+        "via_publica": "#7c3aed",
+        "digital": "#2563eb",
+        "prensa": "#475569",
+    }
+    labels = {
+        "tv_abierta": "TV abierta",
+        "tv_cable": "TV cable",
+        "radio": "Radio",
+        "via_publica": "Via publica",
+        "digital": "Digital",
+        "prensa": "Prensa",
+    }
+    width = 1280
+    height = 820
+    margin_left = 200
+    margin_right = 170
+    margin_top = 110
+    margin_bottom = 80
+    plot_width = width - margin_left - margin_right
+    row_height = 48
+    max_total = max((item["total"] for item in payload["brand_totals"]), default=1.0)
+    ticks = 5
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
+        '<title id="title">Inversion por marca, barras stackeadas</title>',
+        '<desc id="desc">Barras horizontales stackeadas con inversion total por marca y desglose por medio.</desc>',
+        '<rect width="100%" height="100%" fill="#f6f2e9"/>',
+        '<text x="48" y="54" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#1f2937">Inversion total por marca</text>',
+        '<text x="48" y="84" font-family="Georgia, serif" font-size="18" fill="#5f6b7a">Barras stackeadas por tipo de medio. Montos en CLP.</text>',
+    ]
+
+    legend_x = 48
+    legend_y = 110
+    for slug in payload["media_order"]:
+        parts.append(f'<rect x="{legend_x}" y="{legend_y - 12}" width="14" height="14" rx="7" fill="{media_colors[slug]}"/>')
+        parts.append(
+            f'<text x="{legend_x + 24}" y="{legend_y}" font-family="Georgia, serif" font-size="16" fill="#334155">{labels[slug]}</text>'
+        )
+        legend_x += 130
+
+    for tick_index in range(ticks + 1):
+        x = margin_left + plot_width * tick_index / ticks
+        value = max_total * tick_index / ticks
+        parts.append(f'<line x1="{x}" y1="{margin_top}" x2="{x}" y2="{height - margin_bottom}" stroke="#e8e3d8" stroke-width="1"/>')
+        parts.append(
+            f'<text x="{x}" y="{height - 34}" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#64748b">{svg_escape(svg_compact(value))}</text>'
+        )
+
+    for index, item in enumerate(payload["brand_totals"]):
+        y = margin_top + index * row_height
+        cursor = margin_left
+        parts.append(
+            f'<text x="{margin_left - 14}" y="{y + 22}" text-anchor="end" font-family="Georgia, serif" font-size="16" fill="#1f2937">{svg_escape(item["brand_name"])}</text>'
+        )
+        for slug in payload["media_order"]:
+            value = item["media_breakdown"].get(slug, 0.0)
+            segment_width = 0 if max_total == 0 else plot_width * value / max_total
+            if segment_width > 0:
+                parts.append(
+                    f'<rect x="{cursor}" y="{y + 6}" width="{segment_width}" height="24" rx="4" fill="{media_colors[slug]}"/>'
+                )
+                cursor += segment_width
+        parts.append(
+            f'<text x="{margin_left + plot_width + 14}" y="{y + 23}" font-family="Georgia, serif" font-size="15" fill="#334155">{svg_escape(svg_currency(item["total"]))}</text>'
+        )
+
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def build_lines_svg(payload: dict[str, Any]) -> str:
+    palette = ["#8b1e3f", "#0b6e4f", "#2563eb", "#f97316", "#7c3aed", "#b91c1c", "#0f766e", "#475569", "#d97706", "#4f46e5"]
+    width = 1280
+    height = 760
+    margin_left = 82
+    margin_right = 220
+    margin_top = 80
+    margin_bottom = 70
+    plot_width = width - margin_left - margin_right
+    plot_height = height - margin_top - margin_bottom
+    max_value = max(
+        (item["monthly"].get(month, 0.0) for item in payload["brand_totals"] for month in payload["months"]),
+        default=1.0,
+    )
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
+        '<title id="title">Inversion mensual por marca, lineas</title>',
+        '<desc id="desc">Lineas con la evolucion mensual de la inversion total por marca.</desc>',
+        '<rect width="100%" height="100%" fill="#f6f2e9"/>',
+        '<text x="48" y="52" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#1f2937">Evolucion mensual por marca</text>',
+        '<text x="48" y="82" font-family="Georgia, serif" font-size="18" fill="#5f6b7a">Serie mensual de inversion neta total, en CLP.</text>',
+    ]
+
+    for tick_index in range(5):
+        y = margin_top + plot_height - plot_height * tick_index / 4
+        value = max_value * tick_index / 4
+        parts.append(f'<line x1="{margin_left}" y1="{y}" x2="{width - margin_right}" y2="{y}" stroke="#e8e3d8" stroke-width="1"/>')
+        parts.append(
+            f'<text x="{margin_left - 12}" y="{y + 4}" text-anchor="end" font-family="Georgia, serif" font-size="14" fill="#64748b">{svg_escape(svg_compact(value))}</text>'
+        )
+
+    for month_index, month in enumerate(payload["months"]):
+        x = margin_left + (plot_width / 2 if len(payload["months"]) == 1 else plot_width * month_index / (len(payload["months"]) - 1))
+        parts.append(f'<line x1="{x}" y1="{margin_top}" x2="{x}" y2="{height - margin_bottom}" stroke="#efeadd" stroke-width="1"/>')
+        parts.append(
+            f'<text x="{x}" y="{height - 26}" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#64748b">{svg_escape(month)}</text>'
+        )
+
+    legend_y = 116
+    for index, item in enumerate(payload["brand_totals"]):
+        color = palette[index % len(palette)]
+        points = []
+        for month_index, month in enumerate(payload["months"]):
+            x = margin_left + (plot_width / 2 if len(payload["months"]) == 1 else plot_width * month_index / (len(payload["months"]) - 1))
+            value = item["monthly"].get(month, 0.0)
+            y = margin_top + plot_height - (0 if max_value == 0 else plot_height * value / max_value)
+            points.append((x, y))
+        point_string = " ".join(f"{x},{y}" for x, y in points)
+        parts.append(f'<polyline fill="none" stroke="{color}" stroke-width="3" points="{point_string}"/>')
+        for x, y in points:
+            parts.append(f'<circle cx="{x}" cy="{y}" r="4.5" fill="{color}"/>')
+        last_x, last_y = points[-1]
+        parts.append(
+            f'<text x="{last_x + 12}" y="{last_y + 5}" font-family="Georgia, serif" font-size="14" font-weight="700" fill="{color}">{svg_escape(item["brand_name"])}</text>'
+        )
+        parts.append(f'<rect x="{width - margin_right + 20}" y="{legend_y - 12}" width="14" height="14" rx="7" fill="{color}"/>')
+        parts.append(
+            f'<text x="{width - margin_right + 42}" y="{legend_y}" font-family="Georgia, serif" font-size="15" fill="#334155">{svg_escape(item["brand_name"])}</text>'
+        )
+        legend_y += 28
+
+    parts.append("</svg>")
+    return "".join(parts)
+
+
 def build_visualization_html(payload: dict[str, Any]) -> str:
     payload_json = json.dumps(payload, ensure_ascii=True)
     return """<!doctype html>
@@ -681,7 +856,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       <aside class="panel controls">
         <div>
           <h2>Explorador de piezas</h2>
-          <p class="note">Para ver piezas y evidencia, carga el archivo <code>output/master/master_investment_detail.json</code> desde tu computador. Esto funciona incluso si abres esta pagina localmente.</p>
+          <p class="note">La pagina intentara cargar automaticamente el JSON maestro si esta publicada como sitio. Si la abres localmente, tambien puedes cargar el archivo manualmente.</p>
         </div>
         <div class="control">
           <label for="jsonLoader">Cargar JSON maestro</label>
@@ -699,7 +874,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
           <label for="searchFilter">Buscar texto</label>
           <input id="searchFilter" type="search" placeholder="medio, programa, version">
         </div>
-        <p class="note" id="piecesStatus">Sin JSON cargado. Debajo se muestran registros de ejemplo incluidos en el resumen.</p>
+        <p class="note" id="piecesStatus">Intentando cargar el JSON maestro. Si no esta disponible, se mostrara una muestra embebida.</p>
       </aside>
       <section class="panel">
         <div class="table-wrap">
@@ -881,6 +1056,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
           if (!searchValue) return true;
           return [item.outlet_name, item.program_name, item.creative_version, item.ad_type].join(' ').toLowerCase().includes(searchValue);
         })
+        .sort((left, right) => (right.net_investment || 0) - (left.net_investment || 0))
         .slice(0, 80);
 
       const table = document.getElementById("piecesTable");
@@ -930,13 +1106,37 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       });
     }
 
+    async function tryAutoLoadMasterJson() {
+      try {
+        const response = await fetch("./data/master_investment_detail.json");
+        if (!response.ok) throw new Error("master json unavailable");
+        const parsed = await response.json();
+        pieceRecords = parsed.map((item) => ({
+          brand_name: item.brand_name,
+          observed_at: item.observed_at,
+          media_type: item.media_type,
+          outlet_name: item.outlet_name,
+          program_name: item.program_name,
+          ad_type: item.ad_type,
+          creative_version: item.creative_version,
+          evidence_url: item.evidence_url,
+          net_investment: Number(item.net_investment || 0)
+        }));
+        usingEmbeddedSamples = false;
+        buildPiecesFilters(pieceRecords);
+        renderPiecesTable();
+      } catch (error) {
+        renderPiecesTable();
+      }
+    }
+
     setMeta();
     renderStackedBars();
     renderLineChart();
     renderSummaryTable();
     buildPiecesFilters(pieceRecords);
-    renderPiecesTable();
     bindJsonLoader();
+    tryAutoLoadMasterJson();
   </script>
 </body>
 </html>
@@ -1028,7 +1228,13 @@ def main() -> int:
 
     visualization_payload = build_visualization_payload(args.input, records, months, brands, aggregations, qa_report)
     write_json(VISUALIZATION_DATA_OUTPUT, visualization_payload)
-    write_text(VISUALIZATION_HTML_OUTPUT, build_visualization_html(visualization_payload))
+    visualization_html = build_visualization_html(visualization_payload)
+    write_text(VISUALIZATION_HTML_OUTPUT, visualization_html)
+    write_text(STACKED_SVG_OUTPUT, build_stacked_bars_svg(visualization_payload))
+    write_text(LINES_SVG_OUTPUT, build_lines_svg(visualization_payload))
+    write_text(SITE_INDEX_OUTPUT, visualization_html)
+    write_json(SITE_SUMMARY_OUTPUT, visualization_payload)
+    write_json(SITE_MASTER_OUTPUT, records)
 
     write_json(
         VALIDATION_OUTPUT,
