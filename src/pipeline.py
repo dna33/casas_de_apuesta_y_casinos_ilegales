@@ -503,7 +503,6 @@ def build_visualization_payload(
         "readme_html": markdown_to_html(readme_text),
         "qa_passed": qa_report["passed"],
         "qa_checks_run": qa_report["checks_run"],
-        "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
     }
 
 
@@ -1502,7 +1501,6 @@ def build_changes_report(
         ) if previous_input else None,
         "changed_brand_count": len(changed_brands),
         "changed_brands": changed_brands,
-        "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
     }
 
 
@@ -1532,7 +1530,6 @@ def build_validation_report(
         "qa_passed": qa_passed,
         "error_count": len(errors),
         "errors": errors,
-        "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
     }
 
 
