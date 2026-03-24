@@ -24,21 +24,21 @@ from schema import (
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-DEFAULT_INPUT = ROOT_DIR / "input" / "raw" / "BASE - COMPETENCIA - ENERO Y FEBRERO.xlsx"
 PROCESSED_DETAIL_OUTPUT = ROOT_DIR / "input" / "processed" / "latest_base_bruta.csv"
 MASTER_CSV_OUTPUT = ROOT_DIR / "output" / "master" / "master_investment_detail.csv"
 MASTER_JSON_OUTPUT = ROOT_DIR / "output" / "master" / "master_investment_detail.json"
-PRODUCT_OUTPUT_DIR = ROOT_DIR / "output" / "data_products" / "inversion_mensual_por_casino_ilegal"
+PRODUCT_OUTPUT_DIR = ROOT_DIR / "output" / "data_products" / "inversion_semanal_por_casino_ilegal"
+CHANGES_OUTPUT_DIR = ROOT_DIR / "output" / "data_products" / "cambios_vs_corte_anterior_semanal"
 VISUALIZATION_OUTPUT_DIR = ROOT_DIR / "output" / "visualizations"
 SITE_OUTPUT_DIR = ROOT_DIR / "output" / "site"
 VALIDATION_OUTPUT = ROOT_DIR / "output" / "master" / "validation_report.json"
 QA_OUTPUT = ROOT_DIR / "output" / "master" / "qa_report.json"
-VISUALIZATION_HTML_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_mensual_por_casino_ilegal.html"
-VISUALIZATION_DATA_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_mensual_por_casino_ilegal_summary.json"
+VISUALIZATION_HTML_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_semanal_por_casino_ilegal.html"
+VISUALIZATION_DATA_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_semanal_por_casino_ilegal_summary.json"
 STACKED_SVG_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_por_marca_stackeada.svg"
-LINES_SVG_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_por_mes_lineas.svg"
+LINES_SVG_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_por_semana_lineas.svg"
 SITE_INDEX_OUTPUT = SITE_OUTPUT_DIR / "index.html"
-SITE_SUMMARY_OUTPUT = SITE_OUTPUT_DIR / "data" / "inversion_mensual_por_casino_ilegal_summary.json"
+SITE_SUMMARY_OUTPUT = SITE_OUTPUT_DIR / "data" / "inversion_semanal_por_casino_ilegal_summary.json"
 SITE_MASTER_OUTPUT = SITE_OUTPUT_DIR / "data" / "master_investment_detail.json"
 REPO_URL = "https://github.com/dna33/casas_de_apuesta_y_casinos_ilegales"
 
@@ -50,15 +50,39 @@ EXCEL_EPOCH = datetime(1899, 12, 30)
 QA_TOLERANCE = 0.01
 
 
+def find_available_workbooks() -> list[Path]:
+    return sorted((ROOT_DIR / "input" / "raw").glob("*.xlsx"), key=lambda path: path.stat().st_mtime)
+
+
+def default_input_workbook() -> Path:
+    workbooks = find_available_workbooks()
+    if not workbooks:
+        return ROOT_DIR / "input" / "raw" / "latest.xlsx"
+    return workbooks[-1]
+
+
+def default_previous_workbook(current_input: Path) -> Path | None:
+    workbooks = [path for path in find_available_workbooks() if path.resolve() != current_input.resolve()]
+    if not workbooks:
+        return None
+    return workbooks[-1]
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Build monthly illegal casino investment tables from the raw workbook."
+        description="Build weekly illegal casino investment tables from the raw workbook."
     )
     parser.add_argument(
         "--input",
         type=Path,
-        default=DEFAULT_INPUT,
-        help="Path to the raw input workbook (.xlsx).",
+        default=default_input_workbook(),
+        help="Path to the current raw input workbook (.xlsx). Defaults to the newest workbook under input/raw/.",
+    )
+    parser.add_argument(
+        "--previous-input",
+        type=Path,
+        default=None,
+        help="Optional path to the previous workbook used to compute changes between cuts.",
     )
     return parser.parse_args()
 
@@ -181,6 +205,10 @@ def normalize_workbook_record(raw_record: dict[str, str], headers_by_column: dic
     year = normalized["year"]
     month_number = SPANISH_MONTHS.get(normalized["month_name"])
     normalized["month"] = f"{year}-{month_number:02d}" if year and month_number else ""
+    if normalized["observed_at"]:
+        observed_date = datetime.fromisoformat(normalized["observed_at"]).date()
+        week_ending = observed_date + timedelta(days=(6 - observed_date.weekday()))
+        normalized["week_ending"] = week_ending.isoformat()
 
     return normalized
 
@@ -204,7 +232,7 @@ def load_records(input_path: Path) -> list[dict[str, str]]:
 
 def validate_records(records: list[dict[str, str]]) -> list[str]:
     errors: list[str] = []
-    required_fields = ("year", "month_name", "month", "observed_at", "media_type", "brand_name", "net_investment")
+    required_fields = ("year", "month_name", "month", "week_ending", "observed_at", "media_type", "brand_name", "net_investment")
 
     for row_number, record in enumerate(records, start=2):
         for field in required_fields:
@@ -220,46 +248,49 @@ def validate_records(records: list[dict[str, str]]) -> list[str]:
     return errors
 
 
-def sort_months(months: set[str]) -> list[str]:
-    return sorted(months, key=lambda value: datetime.strptime(value, "%Y-%m"))
+def sort_periods(periods: set[str]) -> list[str]:
+    return sorted(periods, key=lambda value: datetime.strptime(value, "%Y-%m-%d" if len(value) == 10 else "%Y-%m"))
 
 
 def format_amount(value: float) -> str:
     return f"{value:.2f}"
 
 
-def aggregate_monthly_tables(records: list[dict[str, str]]) -> tuple[list[str], list[str], dict[str, dict[str, dict[str, float]]]]:
+def aggregate_period_tables(
+    records: list[dict[str, str]],
+    period_field: str,
+) -> tuple[list[str], list[str], dict[str, dict[str, dict[str, float]]]]:
     product_records = [
         record for record in records if record["brand_name"] and record["brand_name"] not in EXCLUDED_PRODUCT_BRANDS
     ]
 
-    months = sort_months({record["month"] for record in product_records})
+    periods = sort_periods({record[period_field] for record in product_records})
     brands = sorted({record["brand_name"] for record in product_records})
 
     aggregations: dict[str, dict[str, dict[str, float]]] = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
 
     for record in product_records:
         brand = record["brand_name"]
-        month = record["month"]
+        period = record[period_field]
         media_type = record["media_type"]
         net_investment = float(record["net_investment"])
 
-        aggregations["total"][brand][month] += net_investment
-        aggregations[MEDIA_TYPE_SLUGS[media_type]][brand][month] += net_investment
+        aggregations["total"][brand][period] += net_investment
+        aggregations[MEDIA_TYPE_SLUGS[media_type]][brand][period] += net_investment
 
-    return months, brands, aggregations
+    return periods, brands, aggregations
 
 
-def build_summary_rows(months: list[str], brands: list[str], values_by_brand: dict[str, dict[str, float]]) -> list[dict[str, str]]:
+def build_summary_rows(periods: list[str], brands: list[str], values_by_brand: dict[str, dict[str, float]]) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
 
     for brand in brands:
-        month_values = values_by_brand.get(brand, {})
+        period_values = values_by_brand.get(brand, {})
         total = 0.0
         row = {"brand_name": brand}
-        for month in months:
-            amount = month_values.get(month, 0.0)
-            row[month] = format_amount(amount)
+        for period in periods:
+            amount = period_values.get(period, 0.0)
+            row[period] = format_amount(amount)
             total += amount
         row["total"] = format_amount(total)
         rows.append(row)
@@ -269,6 +300,13 @@ def build_summary_rows(months: list[str], brands: list[str], values_by_brand: di
 
 def normalize_sheet_label(value: str) -> str:
     return normalize_text(value).upper()
+
+
+def excel_column_number(column_letters: str) -> int:
+    value = 0
+    for character in column_letters:
+        value = value * 26 + (ord(character.upper()) - 64)
+    return value
 
 
 def parse_sheet_float(value: str) -> float:
@@ -285,13 +323,14 @@ def month_label_to_iso(year: str, month_label: str) -> str:
     return f"{year}-{month_number:02d}"
 
 
-def load_resumen_expectations(input_path: Path, months: list[str]) -> dict[str, dict[str, float]]:
+def load_resumen_expectations(input_path: Path, monthly_periods: list[str]) -> dict[str, dict[str, float]]:
     rows = parse_worksheet_rows(input_path, "RESUMEN")
-    year = months[0][:4]
-    months = {
-        "C": month_label_to_iso(year, rows[1].get("C", "")),
-        "D": month_label_to_iso(year, rows[1].get("D", "")),
-    }
+    year = monthly_periods[0][:4]
+    month_columns: dict[str, str] = {}
+    for column_letter, label in rows[1].items():
+        normalized_label = normalize_sheet_label(label)
+        if normalized_label in SPANISH_MONTHS and excel_column_number(column_letter) < excel_column_number("G"):
+            month_columns[column_letter] = month_label_to_iso(year, label)
     expectations: dict[str, dict[str, float]] = {}
 
     for row in rows[2:]:
@@ -302,46 +341,45 @@ def load_resumen_expectations(input_path: Path, months: list[str]) -> dict[str, 
             break
         if brand in EXCLUDED_PRODUCT_BRANDS:
             continue
-        expectations[brand] = {
-            months["C"]: parse_sheet_float(row.get("C", "")),
-            months["D"]: parse_sheet_float(row.get("D", "")),
-        }
+        expectations[brand] = {period: parse_sheet_float(row.get(column_letter, "")) for column_letter, period in month_columns.items()}
 
     return expectations
 
 
-def load_brand_media_expectations(input_path: Path, brand: str, months: list[str]) -> dict[str, dict[str, float]]:
+def load_brand_media_expectations(input_path: Path, brand: str, monthly_periods: list[str]) -> dict[str, dict[str, float]]:
     rows = parse_worksheet_rows(input_path, BRAND_TO_QA_SHEET.get(brand, brand))
     expectations: dict[str, dict[str, float]] = {}
-    month_columns = {"C": months[0], "D": months[1]}
+    year = monthly_periods[0][:4]
+    month_columns: dict[str, str] = {}
+    for column_letter, label in rows[1].items():
+        normalized_label = normalize_sheet_label(label)
+        if normalized_label in SPANISH_MONTHS and excel_column_number(column_letter) < excel_column_number("F"):
+            month_columns[column_letter] = month_label_to_iso(year, label)
 
     for row in rows[5:10]:
         media_label = normalize_sheet_label(row.get("B", ""))
         if media_label == brand or media_label == "TOTAL GENERAL" or media_label not in MEDIA_TYPE_SLUGS:
             continue
         media_slug = MEDIA_TYPE_SLUGS[media_label]
-        expectations[media_slug] = {
-            month_columns["C"]: parse_sheet_float(row.get("C", "")),
-            month_columns["D"]: parse_sheet_float(row.get("D", "")),
-        }
+        expectations[media_slug] = {period: parse_sheet_float(row.get(column_letter, "")) for column_letter, period in month_columns.items()}
 
     return expectations
 
 
 def run_qa(
     input_path: Path,
-    months: list[str],
+    monthly_periods: list[str],
     brands: list[str],
-    aggregations: dict[str, dict[str, dict[str, float]]],
+    monthly_aggregations: dict[str, dict[str, dict[str, float]]],
 ) -> dict[str, Any]:
     mismatches: list[dict[str, Any]] = []
     checks: list[dict[str, Any]] = []
 
-    resumen_expectations = load_resumen_expectations(input_path, months)
+    resumen_expectations = load_resumen_expectations(input_path, monthly_periods)
     for brand in brands:
-        for month in months:
+        for month in monthly_periods:
             expected = resumen_expectations.get(brand, {}).get(month, 0.0)
-            actual = aggregations["total"].get(brand, {}).get(month, 0.0)
+            actual = monthly_aggregations["total"].get(brand, {}).get(month, 0.0)
             difference = round(actual - expected, 6)
             check = {
                 "scope": "total",
@@ -356,11 +394,11 @@ def run_qa(
                 mismatches.append(check)
 
     for brand in brands:
-        media_expectations = load_brand_media_expectations(input_path, brand, months)
+        media_expectations = load_brand_media_expectations(input_path, brand, monthly_periods)
         for media_slug, values in media_expectations.items():
-            for month in months:
+            for month in monthly_periods:
                 expected = values.get(month, 0.0)
-                actual = aggregations.get(media_slug, {}).get(brand, {}).get(month, 0.0)
+                actual = monthly_aggregations.get(media_slug, {}).get(brand, {}).get(month, 0.0)
                 difference = round(actual - expected, 6)
                 check = {
                     "scope": media_slug,
@@ -386,7 +424,7 @@ def run_qa(
 def build_visualization_payload(
     input_path: Path,
     records: list[dict[str, str]],
-    months: list[str],
+    periods: list[str],
     brands: list[str],
     aggregations: dict[str, dict[str, dict[str, float]]],
     qa_report: dict[str, Any],
@@ -398,15 +436,15 @@ def build_visualization_payload(
         media_breakdown = {}
         total = 0.0
         for media_slug in media_order:
-            amount = sum(aggregations.get(media_slug, {}).get(brand, {}).get(month, 0.0) for month in months)
+            amount = sum(aggregations.get(media_slug, {}).get(brand, {}).get(period, 0.0) for period in periods)
             media_breakdown[media_slug] = round(amount, 2)
             total += amount
-        monthly_values = {month: round(aggregations["total"].get(brand, {}).get(month, 0.0), 2) for month in months}
+        period_values = {period: round(aggregations["total"].get(brand, {}).get(period, 0.0), 2) for period in periods}
         brand_totals.append(
             {
                 "brand_name": brand,
                 "total": round(total, 2),
-                "monthly": monthly_values,
+                "series": period_values,
                 "media_breakdown": media_breakdown,
             }
         )
@@ -432,12 +470,13 @@ def build_visualization_payload(
     readme_text = (ROOT_DIR / "README.md").read_text(encoding="utf-8")
 
     return {
-        "title": "Inversion mensual por casino de apuesta ilegal",
+        "title": "Inversion semanal por casino de apuesta ilegal",
         "currency": "CLP",
         "repo_url": REPO_URL,
         "source_file": str(input_path.relative_to(ROOT_DIR)) if input_path.is_relative_to(ROOT_DIR) else str(input_path),
         "source_sheet": RAW_SHEET_NAME,
-        "months": months,
+        "period_granularity": "week",
+        "periods": periods,
         "brands": brands,
         "media_order": media_order,
         "brand_totals": brand_totals,
@@ -669,7 +708,7 @@ def build_lines_svg(payload: dict[str, Any]) -> str:
     plot_width = width - margin_left - margin_right
     plot_height = height - margin_top - margin_bottom
     max_value = max(
-        (item["monthly"].get(month, 0.0) for item in payload["brand_totals"] for month in payload["months"]),
+        (item["series"].get(period, 0.0) for item in payload["brand_totals"] for period in payload["periods"]),
         default=1.0,
     )
     parts = [
@@ -689,20 +728,20 @@ def build_lines_svg(payload: dict[str, Any]) -> str:
             f'<text x="{margin_left - 12}" y="{y + 4}" text-anchor="end" font-family="Helvetica Neue, Arial, sans-serif" font-size="14" fill="#64748b">{svg_escape(svg_compact(value))}</text>'
         )
 
-    for month_index, month in enumerate(payload["months"]):
-        x = margin_left + (plot_width / 2 if len(payload["months"]) == 1 else plot_width * month_index / (len(payload["months"]) - 1))
+    for period_index, period in enumerate(payload["periods"]):
+        x = margin_left + (plot_width / 2 if len(payload["periods"]) == 1 else plot_width * period_index / (len(payload["periods"]) - 1))
         parts.append(f'<line x1="{x}" y1="{margin_top}" x2="{x}" y2="{height - margin_bottom}" stroke="#efeadd" stroke-width="1"/>')
         parts.append(
-            f'<text x="{x}" y="{height - 26}" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="15" fill="#64748b">{svg_escape(month)}</text>'
+            f'<text x="{x}" y="{height - 26}" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="15" fill="#64748b">{svg_escape(period)}</text>'
         )
 
     legend_y = 116
     for index, item in enumerate(payload["brand_totals"]):
         color = palette[index % len(palette)]
         points = []
-        for month_index, month in enumerate(payload["months"]):
-            x = margin_left + (plot_width / 2 if len(payload["months"]) == 1 else plot_width * month_index / (len(payload["months"]) - 1))
-            value = item["monthly"].get(month, 0.0)
+        for period_index, period in enumerate(payload["periods"]):
+            x = margin_left + (plot_width / 2 if len(payload["periods"]) == 1 else plot_width * period_index / (len(payload["periods"]) - 1))
+            value = item["series"].get(period, 0.0)
             y = margin_top + plot_height - (0 if max_value == 0 else plot_height * value / max_value)
             points.append((x, y))
         point_string = " ".join(f"{x},{y}" for x, y in points)
@@ -888,6 +927,11 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       top: 0;
       background: #faf7f0;
     }
+    #piecesTable th:first-child,
+    #piecesTable td:first-child {
+      min-width: 170px;
+      white-space: nowrap;
+    }
     .viewer {
       display: grid;
       grid-template-columns: 300px 1fr;
@@ -992,8 +1036,8 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     <section class="hero">
       <div class="panel">
         <h3>Visualizacion simple</h3>
-        <h1>Inversion mensual por marca en una sola pagina</h1>
-        <p class="lede">Esta pagina esta pensada para abrirse directamente en un navegador comun. Incluye un grafico de barras stackeadas por marca, un grafico de lineas por mes y un explorador opcional de piezas si se carga el JSON maestro.</p>
+        <h1>Inversion semanal por marca en una sola pagina</h1>
+        <p class="lede">Esta pagina esta pensada para abrirse directamente en un navegador comun. Incluye un grafico de barras stackeadas por marca, un grafico de lineas por semana y un explorador opcional de piezas si se carga el JSON maestro.</p>
         <div class="stats" id="stats"></div>
         <div class="legend" id="legend"></div>
       </div>
@@ -1020,7 +1064,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       </article>
       <article class="panel">
         <h2>Lineas por mes</h2>
-        <p class="note">Evolucion mensual de la inversion total por marca segun los meses disponibles en el workbook.</p>
+        <p class="note">Evolucion semanal de la inversion total por marca segun los cortes disponibles en el workbook.</p>
         <div class="chart-wrap"><svg id="lineChart" viewBox="0 0 760 560" aria-label="Grafico de lineas"></svg></div>
         <div class="line-legend" id="lineLegend"></div>
       </article>
@@ -1078,7 +1122,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     const payload = JSON.parse(document.getElementById("payload").textContent);
     const numberFormatter = new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 });
     const compactFormatter = new Intl.NumberFormat("es-CL", { notation: "compact", maximumFractionDigits: 1 });
-    const monthFormatter = new Intl.DateTimeFormat("es-CL", { month: "short", year: "numeric" });
+    const periodFormatter = new Intl.DateTimeFormat("es-CL", { day: "2-digit", month: "short", year: "numeric" });
     let pieceRecords = payload.sample_records.slice();
     let usingEmbeddedSamples = true;
 
@@ -1090,9 +1134,9 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       return "$" + compactFormatter.format(value);
     }
 
-    function prettyMonth(value) {
-      const [year, month] = value.split("-").map(Number);
-      return monthFormatter.format(new Date(year, month - 1, 1));
+    function prettyPeriod(value) {
+      const [year, month, day] = value.split("-").map(Number);
+      return periodFormatter.format(new Date(year, month - 1, day));
     }
 
     function mediaLabel(slug) {
@@ -1129,7 +1173,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       const topBrand = payload.brand_totals[0];
       const stats = [
         { label: "Marcas", value: payload.brands.length },
-        { label: "Meses", value: payload.months.length },
+        { label: "Cortes", value: payload.periods.length },
         { label: "Inversion total", value: formatCompact(totalInvestment) },
         { label: "Marca lider", value: topBrand.brand_name + " · " + formatCompact(topBrand.total) }
       ];
@@ -1181,13 +1225,13 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
 
     function renderLineChart() {
       const svg = document.getElementById("lineChart");
-      const width = 760;
+      const width = 900;
       const height = 560;
       svg.setAttribute("viewBox", "0 0 " + width + " " + height);
-      const margin = { top: 30, right: 32, bottom: 48, left: 64 };
+      const margin = { top: 30, right: 128, bottom: 48, left: 64 };
       const plotWidth = width - margin.left - margin.right;
       const plotHeight = height - margin.top - margin.bottom;
-      const maxValue = Math.max(...payload.brand_totals.flatMap((item) => payload.months.map((month) => item.monthly[month] || 0)), 1);
+      const maxValue = Math.max(...payload.brand_totals.flatMap((item) => payload.periods.map((period) => item.series[period] || 0)), 1);
       let content = "";
 
       for (let i = 0; i <= 4; i += 1) {
@@ -1197,17 +1241,17 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
         content += '<text class="axis-label" x="' + (margin.left - 10) + '" y="' + (y + 4) + '" text-anchor="end">' + formatCompact(value) + '</text>';
       }
 
-      payload.months.forEach((month, index) => {
-        const x = margin.left + (payload.months.length === 1 ? plotWidth / 2 : plotWidth * index / (payload.months.length - 1));
+      payload.periods.forEach((period, index) => {
+        const x = margin.left + (payload.periods.length === 1 ? plotWidth / 2 : plotWidth * index / (payload.periods.length - 1));
         content += '<line class="axis-line" x1="' + x + '" y1="' + margin.top + '" x2="' + x + '" y2="' + (height - margin.bottom) + '"></line>';
-        content += '<text class="axis-label" x="' + x + '" y="' + (height - 16) + '" text-anchor="middle">' + prettyMonth(month) + '</text>';
+        content += '<text class="axis-label" x="' + x + '" y="' + (height - 16) + '" text-anchor="middle">' + prettyPeriod(period) + '</text>';
       });
 
       payload.brand_totals.forEach((item) => {
         const color = brandColor(payload.brand_totals.indexOf(item));
-        const points = payload.months.map((month, index) => {
-          const x = margin.left + (payload.months.length === 1 ? plotWidth / 2 : plotWidth * index / (payload.months.length - 1));
-          const value = item.monthly[month] || 0;
+        const points = payload.periods.map((period, index) => {
+          const x = margin.left + (payload.periods.length === 1 ? plotWidth / 2 : plotWidth * index / (payload.periods.length - 1));
+          const value = item.series[period] || 0;
           const y = margin.top + plotHeight - (plotHeight * value / maxValue);
           return { x, y, value };
         });
@@ -1215,6 +1259,8 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
         points.forEach((point) => {
           content += '<circle cx="' + point.x + '" cy="' + point.y + '" r="4" fill="' + color + '"></circle>';
         });
+        const lastPoint = points[points.length - 1];
+        content += '<text class="axis-label" x="' + (width - 12) + '" y="' + (lastPoint.y + 4) + '" text-anchor="end" fill="' + color + '">' + formatMoney(lastPoint.value || 0) + '</text>';
       });
 
       svg.innerHTML = content;
@@ -1225,10 +1271,10 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
 
     function renderSummaryTable() {
       const table = document.getElementById("summaryTable");
-      const header = ['<thead><tr><th>Marca</th>', ...payload.months.map((month) => '<th>' + prettyMonth(month) + '</th>'), '<th>Total</th></tr></thead>'].join("");
+      const header = ['<thead><tr><th>Marca</th>', ...payload.periods.map((period) => '<th>' + prettyPeriod(period) + '</th>'), '<th>Total</th></tr></thead>'].join("");
       const rows = payload.brand_totals.map((item) => {
         return '<tr><td><strong>' + item.brand_name + '</strong></td>' +
-          payload.months.map((month) => '<td>' + formatMoney(item.monthly[month] || 0) + '</td>').join('') +
+          payload.periods.map((period) => '<td>' + formatMoney(item.series[period] || 0) + '</td>').join('') +
           '<td>' + formatMoney(item.total) + '</td></tr>';
       }).join("");
       table.innerHTML = header + '<tbody>' + rows + '</tbody>';
@@ -1397,23 +1443,72 @@ def write_json(path: Path, payload: Any) -> None:
         json.dump(payload, handle, ensure_ascii=True, indent=2)
 
 
+def compare_aggregations(
+    current_aggregations: dict[str, dict[str, dict[str, float]]],
+    previous_aggregations: dict[str, dict[str, dict[str, float]]],
+    brands: list[str],
+    periods: list[str],
+) -> dict[str, dict[str, dict[str, float]]]:
+    scopes = sorted(set(current_aggregations) | set(previous_aggregations))
+    deltas: dict[str, dict[str, dict[str, float]]] = defaultdict(lambda: defaultdict(dict))
+
+    for scope in scopes:
+        for brand in brands:
+            for period in periods:
+                current_value = current_aggregations.get(scope, {}).get(brand, {}).get(period, 0.0)
+                previous_value = previous_aggregations.get(scope, {}).get(brand, {}).get(period, 0.0)
+                deltas[scope][brand][period] = round(current_value - previous_value, 2)
+
+    return deltas
+
+
+def build_changes_report(
+    current_input: Path,
+    previous_input: Path | None,
+    delta_aggregations: dict[str, dict[str, dict[str, float]]],
+) -> dict[str, Any]:
+    changed_brands: list[dict[str, Any]] = []
+    total_scope = delta_aggregations.get("total", {})
+
+    for brand in sorted(total_scope):
+        total_change = round(sum(total_scope[brand].values()), 2)
+        if total_change != 0:
+            changed_brands.append({"brand_name": brand, "total_change": total_change})
+
+    changed_brands.sort(key=lambda item: abs(item["total_change"]), reverse=True)
+    return {
+        "current_input": str(current_input.relative_to(ROOT_DIR)) if current_input.is_relative_to(ROOT_DIR) else str(current_input),
+        "previous_input": (
+            str(previous_input.relative_to(ROOT_DIR)) if previous_input and previous_input.is_relative_to(ROOT_DIR) else str(previous_input)
+        ) if previous_input else None,
+        "changed_brand_count": len(changed_brands),
+        "changed_brands": changed_brands,
+        "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+    }
+
+
 def build_validation_report(
     input_path: Path,
     records: list[dict[str, str]],
     product_brands: list[str],
-    product_months: list[str],
+    product_periods: list[str],
     table_names: list[str],
+    previous_input_path: Path | None,
     qa_passed: bool,
     errors: list[str],
 ) -> dict[str, Any]:
     return {
         "input_file": str(input_path.relative_to(ROOT_DIR)) if input_path.is_relative_to(ROOT_DIR) else str(input_path),
+        "previous_input_file": (
+            str(previous_input_path.relative_to(ROOT_DIR)) if previous_input_path and previous_input_path.is_relative_to(ROOT_DIR) else str(previous_input_path)
+        ) if previous_input_path else None,
         "worksheet_name": RAW_SHEET_NAME,
         "raw_record_count": len(records),
         "product_record_count": sum(1 for record in records if record["brand_name"] not in EXCLUDED_PRODUCT_BRANDS),
         "product_brands": product_brands,
         "excluded_product_brands": sorted(EXCLUDED_PRODUCT_BRANDS),
-        "months": product_months,
+        "period_granularity": "week",
+        "periods": product_periods,
         "tables_generated": table_names,
         "qa_passed": qa_passed,
         "error_count": len(errors),
@@ -1424,6 +1519,7 @@ def build_validation_report(
 
 def main() -> int:
     args = parse_args()
+    previous_input = args.previous_input or default_previous_workbook(args.input)
     records = load_records(args.input)
     errors = validate_records(records)
 
@@ -1434,8 +1530,9 @@ def main() -> int:
                 input_path=args.input,
                 records=records,
                 product_brands=[],
-                product_months=[],
+                product_periods=[],
                 table_names=[],
+                previous_input_path=previous_input,
                 qa_passed=False,
                 errors=errors,
             ),
@@ -1446,22 +1543,36 @@ def main() -> int:
     write_csv(MASTER_CSV_OUTPUT, list(CANONICAL_FIELD_ORDER), records)
     write_json(MASTER_JSON_OUTPUT, records)
 
-    months, brands, aggregations = aggregate_monthly_tables(records)
-    summary_fieldnames = ["brand_name", *months, "total"]
+    periods, brands, aggregations = aggregate_period_tables(records, "week_ending")
+    monthly_periods, _, monthly_aggregations = aggregate_period_tables(records, "month")
+    summary_fieldnames = ["brand_name", *periods, "total"]
     table_names: list[str] = []
 
     for table_name, values_by_brand in sorted(aggregations.items()):
         output_path = PRODUCT_OUTPUT_DIR / f"{table_name}.csv"
-        summary_rows = build_summary_rows(months, brands, values_by_brand)
+        summary_rows = build_summary_rows(periods, brands, values_by_brand)
         write_csv(output_path, summary_fieldnames, summary_rows)
         table_names.append(f"{table_name}.csv")
 
-    qa_report = run_qa(args.input, months, brands, aggregations)
+    previous_records = load_records(previous_input) if previous_input else []
+    previous_periods, previous_brands, previous_aggregations = aggregate_period_tables(previous_records, "week_ending") if previous_records else ([], [], {})
+    delta_periods = sort_periods(set(periods) | set(previous_periods))
+    delta_brands = sorted(set(brands) | set(previous_brands))
+    delta_aggregations = compare_aggregations(aggregations, previous_aggregations, delta_brands, delta_periods)
+
+    for table_name, values_by_brand in sorted(delta_aggregations.items()):
+        output_path = CHANGES_OUTPUT_DIR / f"{table_name}.csv"
+        summary_rows = build_summary_rows(delta_periods, delta_brands, values_by_brand)
+        write_csv(output_path, ["brand_name", *delta_periods, "total"], summary_rows)
+
+    write_json(CHANGES_OUTPUT_DIR / "changes_report.json", build_changes_report(args.input, previous_input, delta_aggregations))
+
+    qa_report = run_qa(args.input, monthly_periods, brands, monthly_aggregations)
     write_json(QA_OUTPUT, qa_report)
     if not qa_report["passed"]:
         raise SystemExit("QA failed. See output/master/qa_report.json for details.")
 
-    visualization_payload = build_visualization_payload(args.input, records, months, brands, aggregations, qa_report)
+    visualization_payload = build_visualization_payload(args.input, records, periods, brands, aggregations, qa_report)
     write_json(VISUALIZATION_DATA_OUTPUT, visualization_payload)
     visualization_html = build_visualization_html(visualization_payload)
     write_text(VISUALIZATION_HTML_OUTPUT, visualization_html)
@@ -1477,8 +1588,9 @@ def main() -> int:
             input_path=args.input,
             records=records,
             product_brands=brands,
-            product_months=months,
-            table_names=table_names,
+            product_periods=periods,
+            table_names=table_names + ["changes_report.json"],
+            previous_input_path=previous_input,
             qa_passed=qa_report["passed"],
             errors=[],
         ),

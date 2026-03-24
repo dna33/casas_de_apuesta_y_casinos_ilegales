@@ -32,6 +32,7 @@ CANONICAL_FIELD_ORDER = (
     "year",
     "month_name",
     "month",
+    "week_ending",
     "weekday_name",
     "observed_at",
     "media_type",

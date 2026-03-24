@@ -4,27 +4,32 @@
 
 ## Data Products
 
-Primer data product publicado: inversión mensual por marca en publicidad de apuestas y casinos online observados en Chile.
+Primer data product publicado: inversión semanal por marca en publicidad de apuestas y casinos online observados en Chile.
 
-Los montos están expresados en pesos chilenos (`CLP`) y provienen del archivo fuente [BASE - COMPETENCIA - ENERO Y FEBRERO.xlsx](input/raw/BASE%20-%20COMPETENCIA%20-%20ENERO%20Y%20FEBRERO.xlsx), recibido en crudo y procesado desde la hoja `BASE BRUTA`.
+Los montos están expresados en pesos chilenos (`CLP`) y provienen del archivo fuente [BASE - COMPETENCIA - ENERO AL 22 DE MARZO.xlsx](input/raw/BASE%20-%20COMPETENCIA%20-%20ENERO%20AL%2022%20DE%20MARZO.xlsx), recibido en crudo y procesado desde la hoja `BASE BRUTA`.
 
 Archivos disponibles:
 
-- [total.csv](output/data_products/inversion_mensual_por_casino_ilegal/total.csv): inversión mensual total por marca.
-- [tv_abierta.csv](output/data_products/inversion_mensual_por_casino_ilegal/tv_abierta.csv): inversión mensual por marca en televisión abierta.
-- [tv_cable.csv](output/data_products/inversion_mensual_por_casino_ilegal/tv_cable.csv): inversión mensual por marca en televisión de cable.
-- [radio.csv](output/data_products/inversion_mensual_por_casino_ilegal/radio.csv): inversión mensual por marca en radio.
-- [via_publica.csv](output/data_products/inversion_mensual_por_casino_ilegal/via_publica.csv): inversión mensual por marca en vía pública.
-- [digital.csv](output/data_products/inversion_mensual_por_casino_ilegal/digital.csv): inversión mensual por marca en digital.
-- [prensa.csv](output/data_products/inversion_mensual_por_casino_ilegal/prensa.csv): inversión mensual por marca en prensa.
+- [total.csv](output/data_products/inversion_semanal_por_casino_ilegal/total.csv): inversión semanal total por marca, con cierre al domingo.
+- [tv_abierta.csv](output/data_products/inversion_semanal_por_casino_ilegal/tv_abierta.csv): inversión semanal por marca en televisión abierta.
+- [tv_cable.csv](output/data_products/inversion_semanal_por_casino_ilegal/tv_cable.csv): inversión semanal por marca en televisión de cable.
+- [radio.csv](output/data_products/inversion_semanal_por_casino_ilegal/radio.csv): inversión semanal por marca en radio.
+- [via_publica.csv](output/data_products/inversion_semanal_por_casino_ilegal/via_publica.csv): inversión semanal por marca en vía pública.
+- [digital.csv](output/data_products/inversion_semanal_por_casino_ilegal/digital.csv): inversión semanal por marca en digital.
+- [prensa.csv](output/data_products/inversion_semanal_por_casino_ilegal/prensa.csv): inversión semanal por marca en prensa.
+
+Producto complementario de cambios entre cortes:
+
+- [changes_report.json](output/data_products/cambios_vs_corte_anterior_semanal/changes_report.json): resumen de cambios entre el corte actual y el workbook anterior.
+- [total.csv](output/data_products/cambios_vs_corte_anterior_semanal/total.csv): diferencias semanales por marca entre ambos cortes.
 
 ## Visualizaciones simples
 
 Formatos pensados para abrir en un navegador comun, sin software especializado:
 
 - [Sitio interactivo en GitHub Pages](https://dna33.github.io/casas_de_apuesta_y_casinos_ilegales/): version publicada de la visualizacion en una sola pagina, con carga automatica del JSON maestro cuando el sitio esta desplegado.
-- [inversion_mensual_por_casino_ilegal.html](output/visualizations/inversion_mensual_por_casino_ilegal.html): una sola pagina con barras stackeadas por marca, lineas por mes, tabla resumen y explorador de piezas.
-- [inversion_mensual_por_casino_ilegal_summary.json](output/visualizations/inversion_mensual_por_casino_ilegal_summary.json): resumen estructurado para reutilizar los graficos o alimentar otras visualizaciones.
+- [inversion_semanal_por_casino_ilegal.html](output/visualizations/inversion_semanal_por_casino_ilegal.html): una sola pagina con barras stackeadas por marca, lineas por semana, tabla resumen y explorador de piezas.
+- [inversion_semanal_por_casino_ilegal_summary.json](output/visualizations/inversion_semanal_por_casino_ilegal_summary.json): resumen estructurado para reutilizar los graficos o alimentar otras visualizaciones.
 - [master_investment_detail.json](output/master/master_investment_detail.json): JSON maestro detallado que puede cargarse dentro de la pagina HTML para revisar piezas, medios, programas y enlaces de evidencia.
 
 La pagina HTML ya trae un resumen embebido para que abra directo. Ademas permite cargar manualmente el `master_investment_detail.json` y mostrar registros con sus enlaces de evidencia, que en varios casos apuntan a la pieza misma.
@@ -33,7 +38,7 @@ Vista previa directa en GitHub:
 
 ![Barras stackeadas por marca](output/visualizations/inversion_por_marca_stackeada.svg)
 
-![Lineas por mes](output/visualizations/inversion_por_mes_lineas.svg)
+![Lineas por semana](output/visualizations/inversion_por_semana_lineas.svg)
 
 Repositorio abierto destinado a recopilar, verificar y publicar información sobre **publicidad y presencia en medios chilenos de plataformas de apuestas online cuya autorización para operar o publicitarse en Chile ha sido objeto de controversia pública, regulatoria o judicial**.
 
@@ -181,7 +186,7 @@ En particular, se espera recibir **información desde agencias de medios y otras
 
 ## Estructura técnica inicial
 
-El repositorio ya tiene un primer pipeline operativo para transformar la planilla cruda recibida en un **data product de inversión mensual por marca** y una tabla detallada normalizada.
+El repositorio ya tiene un primer pipeline operativo para transformar la planilla cruda recibida en un **data product de inversión semanal por marca** y una tabla detallada normalizada.
 
 - `input/raw/`: insumos originales recibidos.
 - `input/processed/`: versiones procesadas intermedias.
@@ -195,7 +200,7 @@ El repositorio ya tiene un primer pipeline operativo para transformar la planill
 Con el workbook actual, el pipeline se ejecuta así:
 
 ```bash
-python3 src/pipeline.py --input "input/raw/BASE - COMPETENCIA - ENERO Y FEBRERO.xlsx"
+python3 src/pipeline.py --input "input/raw/BASE - COMPETENCIA - ENERO AL 22 DE MARZO.xlsx"
 ```
 
 ### Salidas base
@@ -205,13 +210,14 @@ python3 src/pipeline.py --input "input/raw/BASE - COMPETENCIA - ENERO Y FEBRERO.
 - `output/master/master_investment_detail.json`
 - `output/master/validation_report.json`
 - `output/master/qa_report.json`
-- `output/data_products/inversion_mensual_por_casino_ilegal/total.csv`
-- `output/data_products/inversion_mensual_por_casino_ilegal/tv_abierta.csv`
-- `output/data_products/inversion_mensual_por_casino_ilegal/tv_cable.csv`
-- `output/data_products/inversion_mensual_por_casino_ilegal/radio.csv`
-- `output/data_products/inversion_mensual_por_casino_ilegal/via_publica.csv`
-- `output/data_products/inversion_mensual_por_casino_ilegal/digital.csv`
-- `output/data_products/inversion_mensual_por_casino_ilegal/prensa.csv`
+- `output/data_products/inversion_semanal_por_casino_ilegal/total.csv`
+- `output/data_products/inversion_semanal_por_casino_ilegal/tv_abierta.csv`
+- `output/data_products/inversion_semanal_por_casino_ilegal/tv_cable.csv`
+- `output/data_products/inversion_semanal_por_casino_ilegal/radio.csv`
+- `output/data_products/inversion_semanal_por_casino_ilegal/via_publica.csv`
+- `output/data_products/inversion_semanal_por_casino_ilegal/digital.csv`
+- `output/data_products/inversion_semanal_por_casino_ilegal/prensa.csv`
+- `output/data_products/cambios_vs_corte_anterior_semanal/changes_report.json`
 
 ### Supuesto del primer producto
 
