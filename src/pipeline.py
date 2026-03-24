@@ -51,21 +51,40 @@ QA_TOLERANCE = 0.01
 
 
 def find_available_workbooks() -> list[Path]:
-    return sorted((ROOT_DIR / "input" / "raw").glob("*.xlsx"), key=lambda path: path.stat().st_mtime)
+    return sorted((ROOT_DIR / "input" / "raw").glob("*.xlsx"))
+
+
+def workbook_coverage_end(workbook_path: Path) -> str:
+    rows = parse_worksheet_rows(workbook_path, RAW_SHEET_NAME)
+    if len(rows) <= 1:
+        return ""
+    header_row = rows[0]
+    date_column = next((column for column, header in header_row.items() if normalize_text(header) == "Fecha"), None)
+    if not date_column:
+        return ""
+    max_date = ""
+    for row in rows[1:]:
+        raw_date = row.get(date_column, "")
+        if not raw_date:
+            continue
+        iso_date = excel_serial_to_date(raw_date)
+        if iso_date > max_date:
+            max_date = iso_date
+    return max_date
 
 
 def default_input_workbook() -> Path:
     workbooks = find_available_workbooks()
     if not workbooks:
         return ROOT_DIR / "input" / "raw" / "latest.xlsx"
-    return workbooks[-1]
+    return max(workbooks, key=lambda path: (workbook_coverage_end(path), path.name))
 
 
 def default_previous_workbook(current_input: Path) -> Path | None:
     workbooks = [path for path in find_available_workbooks() if path.resolve() != current_input.resolve()]
     if not workbooks:
         return None
-    return workbooks[-1]
+    return max(workbooks, key=lambda path: (workbook_coverage_end(path), path.name))
 
 
 def parse_args() -> argparse.Namespace:
