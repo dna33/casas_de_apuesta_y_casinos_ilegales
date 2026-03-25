@@ -514,7 +514,14 @@
           payload.periods.map((period) => '<td>' + formatMoney(item.series[period] || 0) + '</td>').join('') +
           '<td>' + formatMoney(item.total) + '</td></tr>';
       }).join("");
-      table.innerHTML = header + '<tbody>' + rows + '</tbody>';
+      const totalsByPeriod = payload.periods.map((period) =>
+        payload.brand_totals.reduce((sum, item) => sum + (item.series[period] || 0), 0)
+      );
+      const grandTotal = payload.brand_totals.reduce((sum, item) => sum + item.total, 0);
+      const totalRow = '<tr><td><strong>Total</strong></td>' +
+        totalsByPeriod.map((value) => '<td><strong>' + formatMoney(value) + '</strong></td>').join('') +
+        '<td><strong>' + formatMoney(grandTotal) + '</strong></td></tr>';
+      table.innerHTML = header + '<tbody>' + rows + totalRow + '</tbody>';
     }
 
     function buildPiecesFilters(records) {
