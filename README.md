@@ -4,9 +4,11 @@
 
 ## Data Products
 
-Primer data product publicado: inversión semanal por marca en publicidad de apuestas y casinos online observados en Chile.
+Primer data product publicado: inversión semanal estimada por marca en publicidad de apuestas y casinos online observados en Chile.
 
 Los montos están expresados en pesos chilenos (`CLP`) y provienen del archivo fuente [BASE - COMPETENCIA - ENERO AL 22 DE MARZO.xlsx](input/raw/BASE%20-%20COMPETENCIA%20-%20ENERO%20AL%2022%20DE%20MARZO.xlsx), recibido en crudo y procesado desde la hoja `BASE BRUTA`.
+
+Estas cifras deben leerse como **estimaciones de inversión publicitaria**: se construyen a partir de la observación de apariciones en distintos canales, como televisión, radio, internet, vía pública y otros soportes, valorizadas con tarifas estándar. Por esa metodología, los montos publicados pueden presentar diferencias menores respecto de los montos efectivamente transados o facturados en la realidad.
 
 Archivos disponibles:
 
@@ -32,7 +34,7 @@ Formatos pensados para abrir en un navegador comun, sin software especializado:
 - [inversion_semanal_por_casino_ilegal_summary.json](output/visualizations/inversion_semanal_por_casino_ilegal_summary.json): resumen estructurado para reutilizar los graficos o alimentar otras visualizaciones.
 - [master_investment_detail.json](output/master/master_investment_detail.json): JSON maestro detallado que puede cargarse dentro de la pagina HTML para revisar piezas, medios, programas y enlaces de evidencia.
 
-La pagina HTML ya trae un resumen embebido para que abra directo. Ademas permite cargar manualmente el `master_investment_detail.json` y mostrar registros con sus enlaces de evidencia, que en varios casos apuntan a la pieza misma.
+La pagina HTML ya trae un resumen embebido para que abra directo. Ademas permite cargar manualmente el `master_investment_detail.json` y mostrar registros con sus enlaces de evidencia, que en varios casos apuntan a la pieza misma. En esa visualizacion, al igual que en los CSV publicados, los montos deben entenderse como estimaciones construidas con observacion de pauta y tarifas estandar, por lo que pueden existir diferencias menores con los montos reales.
 
 Vista previa directa en GitHub:
 

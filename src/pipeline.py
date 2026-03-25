@@ -670,10 +670,10 @@ def build_stacked_bars_svg(payload: dict[str, Any]) -> str:
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
         '<title id="title">Inversion por marca, barras stackeadas</title>',
-        '<desc id="desc">Barras horizontales stackeadas con inversion total por marca y desglose por medio.</desc>',
+        '<desc id="desc">Barras horizontales stackeadas con inversion estimada total por marca y desglose por medio.</desc>',
         '<rect width="100%" height="100%" fill="#f6f2e9"/>',
         '<text x="48" y="54" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">Inversion total por marca</text>',
-        '<text x="48" y="84" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Barras stackeadas por tipo de medio. Montos en CLP.</text>',
+        '<text x="48" y="84" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Barras stackeadas por tipo de medio. Montos estimados en CLP segun observacion y tarifas estandar.</text>',
     ]
 
     legend_x = 48
@@ -732,10 +732,10 @@ def build_lines_svg(payload: dict[str, Any]) -> str:
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
         '<title id="title">Inversion mensual por marca, lineas</title>',
-        '<desc id="desc">Lineas con la evolucion mensual de la inversion total por marca.</desc>',
+        '<desc id="desc">Lineas con la evolucion semanal de la inversion estimada total por marca.</desc>',
         '<rect width="100%" height="100%" fill="#f6f2e9"/>',
-        '<text x="48" y="52" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">Evolucion mensual por marca</text>',
-        '<text x="48" y="82" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Serie mensual de inversion neta total, en CLP.</text>',
+        '<text x="48" y="52" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">Evolucion semanal por marca</text>',
+        '<text x="48" y="82" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Serie semanal de inversion estimada total, en CLP, valorizada con tarifas estandar.</text>',
     ]
 
     for tick_index in range(5):
@@ -1056,6 +1056,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
         <h3>Visualizacion simple</h3>
         <h1>Inversion semanal por marca en una sola pagina</h1>
         <p class="lede">Esta pagina esta pensada para abrirse directamente en un navegador comun. Incluye un grafico de barras stackeadas por marca, un grafico de lineas por semana y un explorador opcional de piezas si se carga el JSON maestro.</p>
+        <p class="note">Los montos publicados son estimaciones de inversion publicitaria construidas a partir de observacion de apariciones en television, radio, internet, via publica y otros soportes, valorizadas con tarifas estandar. Pueden existir diferencias menores respecto de los montos reales transados o facturados.</p>
         <div class="stats" id="stats"></div>
         <div class="legend" id="legend"></div>
       </div>
@@ -1077,12 +1078,12 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     <section class="charts">
       <article class="panel">
         <h2>Barras stackeadas por marca</h2>
-        <p class="note">Cada barra suma la inversion total por marca y la divide por tipo de medio.</p>
+        <p class="note">Cada barra suma la inversion estimada total por marca y la divide por tipo de medio.</p>
         <div class="chart-wrap"><svg id="stackedBars" viewBox="0 0 960 560" aria-label="Grafico de barras stackeadas"></svg></div>
       </article>
       <article class="panel">
-        <h2>Lineas por mes</h2>
-        <p class="note">Evolucion semanal de la inversion total por marca segun los cortes disponibles en el workbook.</p>
+        <h2>Lineas por semana</h2>
+        <p class="note">Evolucion semanal de la inversion estimada total por marca segun los cortes disponibles en el workbook y valorizados con tarifas estandar.</p>
         <div class="chart-wrap"><svg id="lineChart" viewBox="0 0 760 560" aria-label="Grafico de lineas"></svg></div>
         <div class="line-legend" id="lineLegend"></div>
       </article>
@@ -1090,7 +1091,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
 
     <section class="panel">
       <h2>Tabla resumen</h2>
-      <p class="note">Totales acumulados por marca en CLP.</p>
+      <p class="note">Totales acumulados estimados por marca en CLP.</p>
       <div class="table-wrap">
         <table id="summaryTable"></table>
       </div>
