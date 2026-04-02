@@ -1,47 +1,43 @@
 {
-  "current_input": "input/raw/BASE - COMPETENCIA - ENERO AL 22 DE MARZO.xlsx",
-  "previous_input": "input/raw/BASE - COMPETENCIA - ENERO Y FEBRERO.xlsx",
-  "changed_brand_count": 10,
+  "current_input": "input/raw/XPERTO 2026 A 29 MAR.xlsx",
+  "previous_input": "input/raw/BASE - COMPETENCIA - ENERO AL 22 DE MARZO.xlsx",
+  "changed_brand_count": 9,
   "changed_brands": [
     {
       "brand_name": "BETANO",
-      "total_change": 275592417.53
+      "total_change": 87340222.44
     },
     {
       "brand_name": "COOLBET",
-      "total_change": 70954176.54
+      "total_change": 39742915.05
     },
     {
       "brand_name": "JUGABET",
-      "total_change": 35228434.15
-    },
-    {
-      "brand_name": "LATAMWIN",
-      "total_change": 32054483.85
+      "total_change": 8583650.94
     },
     {
       "brand_name": "EPICBET",
-      "total_change": 23788337.0
+      "total_change": 7205201.0
+    },
+    {
+      "brand_name": "LATAMWIN",
+      "total_change": 7030557.53
     },
     {
       "brand_name": "ROJABET",
-      "total_change": 13589637.0
+      "total_change": 4111710.0
     },
     {
       "brand_name": "TONYBET",
-      "total_change": 3983387.48
+      "total_change": 1751060.5
     },
     {
       "brand_name": "APUESTAS ROYAL",
-      "total_change": 2456144.0
+      "total_change": 602278.0
     },
     {
       "brand_name": "BETSSON",
-      "total_change": 1379689.0
-    },
-    {
-      "brand_name": "JUEGA EN LINEA",
-      "total_change": 236981.58
+      "total_change": 152993.0
     }
   ]
 }

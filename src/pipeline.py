@@ -41,6 +41,8 @@ SITE_INDEX_OUTPUT = SITE_OUTPUT_DIR / "index.html"
 SITE_SUMMARY_OUTPUT = SITE_OUTPUT_DIR / "data" / "inversion_semanal_por_casino_ilegal_summary.json"
 SITE_MASTER_OUTPUT = SITE_OUTPUT_DIR / "data" / "master_investment_detail.json"
 REPO_URL = "https://github.com/dna33/casas_de_apuesta_y_casinos_ilegales"
+RAW_SHEET_CANDIDATES = (RAW_SHEET_NAME, "DATOS")
+SUMMARY_SHEET_CANDIDATES = ("RESUMEN", "CRUCES")
 
 EXCEL_NS = {
     "main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
@@ -54,8 +56,22 @@ def find_available_workbooks() -> list[Path]:
     return sorted((ROOT_DIR / "input" / "raw").glob("*.xlsx"))
 
 
+def workbook_sheet_names(workbook_path: Path) -> list[str]:
+    with ZipFile(workbook_path) as workbook:
+        workbook_root = ET.fromstring(workbook.read("xl/workbook.xml"))
+    return [sheet.attrib["name"] for sheet in workbook_root.find("main:sheets", EXCEL_NS)]
+
+
+def resolve_available_sheet_name(workbook_path: Path, candidates: tuple[str, ...]) -> str | None:
+    available_sheets = set(workbook_sheet_names(workbook_path))
+    return next((candidate for candidate in candidates if candidate in available_sheets), None)
+
+
 def workbook_coverage_end(workbook_path: Path) -> str:
-    rows = parse_worksheet_rows(workbook_path, RAW_SHEET_NAME)
+    raw_sheet_name = resolve_available_sheet_name(workbook_path, RAW_SHEET_CANDIDATES)
+    if not raw_sheet_name:
+        return ""
+    rows = parse_worksheet_rows(workbook_path, raw_sheet_name)
     if len(rows) <= 1:
         return ""
     header_row = rows[0]
@@ -241,9 +257,15 @@ def load_records(input_path: Path) -> list[dict[str, str]]:
     if input_path.suffix.lower() != ".xlsx":
         raise ValueError(f"Unsupported input format: {input_path.suffix}. Expected .xlsx")
 
-    rows = parse_worksheet_rows(input_path, RAW_SHEET_NAME)
+    raw_sheet_name = resolve_available_sheet_name(input_path, RAW_SHEET_CANDIDATES)
+    if not raw_sheet_name:
+        raise ValueError(
+            f"Could not find a supported raw sheet in {input_path.name}. Expected one of: {', '.join(RAW_SHEET_CANDIDATES)}"
+        )
+
+    rows = parse_worksheet_rows(input_path, raw_sheet_name)
     if not rows:
-        raise ValueError(f"Worksheet {RAW_SHEET_NAME} is empty.")
+        raise ValueError(f"Worksheet {raw_sheet_name} is empty.")
 
     headers_by_column = rows[0]
     return [normalize_workbook_record(row, headers_by_column) for row in rows[1:]]
@@ -343,7 +365,13 @@ def month_label_to_iso(year: str, month_label: str) -> str:
 
 
 def load_resumen_expectations(input_path: Path, monthly_periods: list[str]) -> dict[str, dict[str, float]]:
-    rows = parse_worksheet_rows(input_path, "RESUMEN")
+    summary_sheet_name = resolve_available_sheet_name(input_path, SUMMARY_SHEET_CANDIDATES)
+    if summary_sheet_name == "CRUCES":
+        return load_cruces_expectations(input_path, monthly_periods)
+    if not summary_sheet_name:
+        return {}
+
+    rows = parse_worksheet_rows(input_path, summary_sheet_name)
     year = monthly_periods[0][:4]
     month_columns: dict[str, str] = {}
     for column_letter, label in rows[1].items():
@@ -365,8 +393,41 @@ def load_resumen_expectations(input_path: Path, monthly_periods: list[str]) -> d
     return expectations
 
 
+def load_cruces_expectations(input_path: Path, monthly_periods: list[str]) -> dict[str, dict[str, float]]:
+    rows = parse_worksheet_rows(input_path, "CRUCES")
+    if len(rows) < 3:
+        return {}
+
+    year = monthly_periods[0][:4]
+    month_columns: dict[str, str] = {}
+    for column_letter, label in rows[1].items():
+        normalized_label = normalize_sheet_label(label)
+        if normalized_label in SPANISH_MONTHS and excel_column_number(column_letter) < excel_column_number("G"):
+            month_columns[column_letter] = month_label_to_iso(year, label)
+
+    expectations: dict[str, dict[str, float]] = {}
+    for row in rows[2:]:
+        brand = normalize_sheet_label(row.get("A", ""))
+        if not brand:
+            continue
+        if brand == "TOTAL GENERAL":
+            break
+        if brand in EXCLUDED_PRODUCT_BRANDS:
+            continue
+        expectations[brand] = {
+            period: parse_sheet_float(row.get(column_letter, ""))
+            for column_letter, period in month_columns.items()
+        }
+
+    return expectations
+
+
 def load_brand_media_expectations(input_path: Path, brand: str, monthly_periods: list[str]) -> dict[str, dict[str, float]]:
-    rows = parse_worksheet_rows(input_path, BRAND_TO_QA_SHEET.get(brand, brand))
+    sheet_name = BRAND_TO_QA_SHEET.get(brand, brand)
+    if sheet_name not in workbook_sheet_names(input_path):
+        return {}
+
+    rows = parse_worksheet_rows(input_path, sheet_name)
     expectations: dict[str, dict[str, float]] = {}
     year = monthly_periods[0][:4]
     month_columns: dict[str, str] = {}
@@ -442,6 +503,7 @@ def run_qa(
 
 def build_visualization_payload(
     input_path: Path,
+    source_sheet_name: str | None,
     records: list[dict[str, str]],
     periods: list[str],
     brands: list[str],
@@ -493,7 +555,7 @@ def build_visualization_payload(
         "currency": "CLP",
         "repo_url": REPO_URL,
         "source_file": str(input_path.relative_to(ROOT_DIR)) if input_path.is_relative_to(ROOT_DIR) else str(input_path),
-        "source_sheet": RAW_SHEET_NAME,
+        "source_sheet": source_sheet_name,
         "period_granularity": "week",
         "periods": periods,
         "brands": brands,
@@ -669,11 +731,11 @@ def build_stacked_bars_svg(payload: dict[str, Any]) -> str:
     ticks = 5
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
-        '<title id="title">Inversion por marca, barras stackeadas</title>',
-        '<desc id="desc">Barras horizontales stackeadas con inversion estimada total por marca y desglose por medio.</desc>',
+        '<title id="title">Distribucion estimada de inversion por marca y medio</title>',
+        '<desc id="desc">Barras horizontales stackeadas con la distribucion estimada de inversion por marca y desglose por medio.</desc>',
         '<rect width="100%" height="100%" fill="#f6f2e9"/>',
-        '<text x="48" y="54" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">Inversion total por marca</text>',
-        '<text x="48" y="84" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Barras stackeadas por tipo de medio. Montos estimados en CLP segun observacion y tarifas estandar.</text>',
+        '<text x="48" y="54" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">Distribucion estimada de inversion por marca y medio</text>',
+        '<text x="48" y="84" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Composicion por tipo de medio. Montos estimados en CLP segun observacion y tarifas estandar.</text>',
     ]
 
     legend_x = 48
@@ -731,11 +793,11 @@ def build_lines_svg(payload: dict[str, Any]) -> str:
     )
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
-        '<title id="title">Inversion mensual por marca, lineas</title>',
+        '<title id="title">Evolucion semanal estimada de la inversion por marca</title>',
         '<desc id="desc">Lineas con la evolucion semanal de la inversion estimada total por marca.</desc>',
         '<rect width="100%" height="100%" fill="#f6f2e9"/>',
-        '<text x="48" y="52" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">Evolucion semanal por marca</text>',
-        '<text x="48" y="82" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Serie semanal de inversion estimada total, en CLP, valorizada con tarifas estandar.</text>',
+        '<text x="48" y="52" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">Evolucion semanal estimada de la inversion por marca</text>',
+        '<text x="48" y="82" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Serie semanal en CLP valorizada con tarifas estandar a partir de observacion de pauta.</text>',
     ]
 
     for tick_index in range(5):
@@ -901,7 +963,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     }
     .charts {
       display: grid;
-      grid-template-columns: 1.15fr 1fr;
+      grid-template-columns: 1fr;
       gap: 20px;
       margin-bottom: 24px;
     }
@@ -1077,13 +1139,13 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
 
     <section class="charts">
       <article class="panel">
-        <h2>Barras stackeadas por marca</h2>
-        <p class="note">Cada barra suma la inversion estimada total por marca y la divide por tipo de medio.</p>
+        <h2>Distribucion estimada de inversion por marca y medio</h2>
+        <p class="note">Cada barra muestra la composicion de la inversion estimada total por marca segun tipo de medio.</p>
         <div class="chart-wrap"><svg id="stackedBars" viewBox="0 0 960 560" aria-label="Grafico de barras stackeadas"></svg></div>
       </article>
       <article class="panel">
-        <h2>Lineas por semana</h2>
-        <p class="note">Evolucion semanal de la inversion estimada total por marca segun los cortes disponibles en el workbook y valorizados con tarifas estandar.</p>
+        <h2>Evolucion semanal estimada de la inversion por marca</h2>
+        <p class="note">Serie temporal de la inversion estimada por marca segun los cortes semanales disponibles en el workbook.</p>
         <div class="chart-wrap"><svg id="lineChart" viewBox="0 0 760 560" aria-label="Grafico de lineas"></svg></div>
         <div class="line-legend" id="lineLegend"></div>
       </article>
@@ -1514,6 +1576,7 @@ def build_changes_report(
 
 def build_validation_report(
     input_path: Path,
+    worksheet_name: str | None,
     records: list[dict[str, str]],
     product_brands: list[str],
     product_periods: list[str],
@@ -1527,7 +1590,7 @@ def build_validation_report(
         "previous_input_file": (
             str(previous_input_path.relative_to(ROOT_DIR)) if previous_input_path and previous_input_path.is_relative_to(ROOT_DIR) else str(previous_input_path)
         ) if previous_input_path else None,
-        "worksheet_name": RAW_SHEET_NAME,
+        "worksheet_name": worksheet_name,
         "raw_record_count": len(records),
         "product_record_count": sum(1 for record in records if record["brand_name"] not in EXCLUDED_PRODUCT_BRANDS),
         "product_brands": product_brands,
@@ -1544,6 +1607,7 @@ def build_validation_report(
 def main() -> int:
     args = parse_args()
     previous_input = args.previous_input or default_previous_workbook(args.input)
+    raw_sheet_name = resolve_available_sheet_name(args.input, RAW_SHEET_CANDIDATES)
     records = load_records(args.input)
     errors = validate_records(records)
 
@@ -1552,6 +1616,7 @@ def main() -> int:
             VALIDATION_OUTPUT,
             build_validation_report(
                 input_path=args.input,
+                worksheet_name=raw_sheet_name,
                 records=records,
                 product_brands=[],
                 product_periods=[],
@@ -1596,7 +1661,7 @@ def main() -> int:
     if not qa_report["passed"]:
         raise SystemExit("QA failed. See output/master/qa_report.json for details.")
 
-    visualization_payload = build_visualization_payload(args.input, records, periods, brands, aggregations, qa_report)
+    visualization_payload = build_visualization_payload(args.input, raw_sheet_name, records, periods, brands, aggregations, qa_report)
     write_json(VISUALIZATION_DATA_OUTPUT, visualization_payload)
     visualization_html = build_visualization_html(visualization_payload)
     write_text(VISUALIZATION_HTML_OUTPUT, visualization_html)
@@ -1610,6 +1675,7 @@ def main() -> int:
         VALIDATION_OUTPUT,
         build_validation_report(
             input_path=args.input,
+            worksheet_name=raw_sheet_name,
             records=records,
             product_brands=brands,
             product_periods=periods,

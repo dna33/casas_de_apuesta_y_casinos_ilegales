@@ -6,7 +6,7 @@
 
 Primer data product publicado: inversión semanal estimada por marca en publicidad de apuestas y casinos online observados en Chile.
 
-Los montos están expresados en pesos chilenos (`CLP`) y provienen del archivo fuente [BASE - COMPETENCIA - ENERO AL 22 DE MARZO.xlsx](input/raw/BASE%20-%20COMPETENCIA%20-%20ENERO%20AL%2022%20DE%20MARZO.xlsx), recibido en crudo y procesado desde la hoja `BASE BRUTA`.
+Los montos están expresados en pesos chilenos (`CLP`) y provienen del archivo fuente [XPERTO 2026 A 29 MAR.xlsx](input/raw/XPERTO%202026%20A%2029%20MAR.xlsx), recibido en crudo y procesado desde la hoja `DATOS`.
 
 Estas cifras deben leerse como **estimaciones de inversión publicitaria**: se construyen a partir de la observación de apariciones en distintos canales, como televisión, radio, internet, vía pública y otros soportes, valorizadas con tarifas estándar. Por esa metodología, los montos publicados pueden presentar diferencias menores respecto de los montos efectivamente transados o facturados en la realidad.
 
@@ -202,7 +202,7 @@ El repositorio ya tiene un primer pipeline operativo para transformar la planill
 Con el workbook actual, el pipeline se ejecuta así:
 
 ```bash
-python3 src/pipeline.py --input "input/raw/BASE - COMPETENCIA - ENERO AL 22 DE MARZO.xlsx"
+python3 src/pipeline.py --input "input/raw/XPERTO 2026 A 29 MAR.xlsx"
 ```
 
 ### Salidas base

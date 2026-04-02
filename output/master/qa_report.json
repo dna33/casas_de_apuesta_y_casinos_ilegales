@@ -1,7 +1,7 @@
 {
   "passed": true,
   "tolerance": 0.01,
-  "checks_run": 60,
+  "checks_run": 30,
   "mismatch_count": 0,
   "mismatches": []
 }
