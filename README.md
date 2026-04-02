@@ -8,7 +8,7 @@ Primer data product publicado: inversión semanal estimada por marca en publicid
 
 Los montos están expresados en pesos chilenos (`CLP`) y provienen del archivo fuente [XPERTO 2026 A 29 MAR.xlsx](input/raw/XPERTO%202026%20A%2029%20MAR.xlsx), recibido en crudo y procesado desde la hoja `DATOS`.
 
-Estas cifras deben leerse como **estimaciones de inversión publicitaria**: se construyen a partir de la observación de apariciones en distintos canales, como televisión, radio, internet, vía pública y otros soportes, valorizadas con tarifas estándar. Por esa metodología, los montos publicados pueden presentar diferencias menores respecto de los montos efectivamente transados o facturados en la realidad.
+Estas cifras deben leerse como **estimaciones de inversión publicitaria**: el proyecto mide publicidad observada en el dominio público, registra sus apariciones en televisión, radio, internet, vía pública y otros soportes, y luego valoriza esas apariciones con tarifas estándar de mercado. Esa metodología permite **estimar con buena precisión la magnitud de la inversión publicitaria** realizada por las marcas observadas. Aun así, los montos publicados pueden presentar diferencias menores respecto de los montos efectivamente transados o facturados en la realidad.
 
 Archivos disponibles:
 
@@ -34,7 +34,7 @@ Formatos pensados para abrir en un navegador comun, sin software especializado:
 - [inversion_semanal_por_casino_ilegal_summary.json](output/visualizations/inversion_semanal_por_casino_ilegal_summary.json): resumen estructurado para reutilizar los graficos o alimentar otras visualizaciones.
 - [master_investment_detail.json](output/master/master_investment_detail.json): JSON maestro detallado que puede cargarse dentro de la pagina HTML para revisar piezas, medios, programas y enlaces de evidencia.
 
-La pagina HTML ya trae un resumen embebido para que abra directo. Ademas permite cargar manualmente el `master_investment_detail.json` y mostrar registros con sus enlaces de evidencia, que en varios casos apuntan a la pieza misma. En esa visualizacion, al igual que en los CSV publicados, los montos deben entenderse como estimaciones construidas con observacion de pauta y tarifas estandar, por lo que pueden existir diferencias menores con los montos reales.
+La pagina HTML ya trae un resumen embebido para que abra directo. Ademas permite cargar manualmente el `master_investment_detail.json` y mostrar registros con sus enlaces de evidencia, que en varios casos apuntan a la pieza misma. En esa visualizacion, al igual que en los CSV publicados, lo que se observa no es una factura ni una declaracion corporativa directa, sino una **medicion de publicidad visible en el dominio publico** multiplicada por una tarifa estandar. Ese procedimiento permite estimar con buena precision las inserciones y montos publicitarios, aunque pueden existir diferencias menores con los montos reales.
 
 Vista previa directa en GitHub:
 

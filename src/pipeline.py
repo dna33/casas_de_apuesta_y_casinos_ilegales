@@ -1117,8 +1117,8 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       <div class="panel">
         <h3>Visualizacion simple</h3>
         <h1>Inversion semanal por marca en una sola pagina</h1>
-        <p class="lede">Esta pagina esta pensada para abrirse directamente en un navegador comun. Incluye un grafico de barras stackeadas por marca, un grafico de lineas por semana y un explorador opcional de piezas si se carga el JSON maestro.</p>
-        <p class="note">Los montos publicados son estimaciones de inversion publicitaria construidas a partir de observacion de apariciones en television, radio, internet, via publica y otros soportes, valorizadas con tarifas estandar. Pueden existir diferencias menores respecto de los montos reales transados o facturados.</p>
+        <p class="lede">Esta pagina muestra una estimacion de la inversion publicitaria observada en el dominio publico. Registra apariciones en television, radio, internet, via publica y otros soportes, y las valoriza con tarifas estandar para aproximar con buena precision cuanto estan invirtiendo las marcas observadas.</p>
+        <p class="note">Lo que ves aqui no es una factura ni una declaracion corporativa directa, sino una medicion de publicidad visible en el dominio publico multiplicada por una tarifa estandar. Por esa metodologia, los montos pueden presentar diferencias menores respecto de los valores efectivamente transados o facturados.</p>
         <div class="stats" id="stats"></div>
         <div class="legend" id="legend"></div>
       </div>
@@ -1140,12 +1140,12 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     <section class="charts">
       <article class="panel">
         <h2>Distribucion estimada de inversion por marca y medio</h2>
-        <p class="note">Cada barra muestra la composicion de la inversion estimada total por marca segun tipo de medio.</p>
+        <p class="note">Cada barra resume la estimacion total por marca y la descompone por tipo de medio segun la publicidad observada y valorizada con tarifa estandar.</p>
         <div class="chart-wrap"><svg id="stackedBars" viewBox="0 0 960 560" aria-label="Grafico de barras stackeadas"></svg></div>
       </article>
       <article class="panel">
         <h2>Evolucion semanal estimada de la inversion por marca</h2>
-        <p class="note">Serie temporal de la inversion estimada por marca segun los cortes semanales disponibles en el workbook.</p>
+        <p class="note">Serie temporal de la estimacion semanal por marca a partir de inserciones publicitarias observadas en el dominio publico y valorizadas con tarifa estandar.</p>
         <div class="chart-wrap"><svg id="lineChart" viewBox="0 0 760 560" aria-label="Grafico de lineas"></svg></div>
         <div class="line-legend" id="lineLegend"></div>
       </article>
@@ -1153,7 +1153,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
 
     <section class="panel">
       <h2>Tabla resumen</h2>
-      <p class="note">Totales acumulados estimados por marca en CLP.</p>
+      <p class="note">Totales acumulados estimados por marca en CLP a partir de publicidad observada y valorizada con tarifa estandar.</p>
       <div class="table-wrap">
         <table id="summaryTable"></table>
       </div>
