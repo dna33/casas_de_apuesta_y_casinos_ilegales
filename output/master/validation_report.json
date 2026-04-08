@@ -1,9 +1,9 @@
 {
-  "input_file": "input/raw/XPERTO 2026 A 29 MAR.xlsx",
-  "previous_input_file": "input/raw/BASE - COMPETENCIA - ENERO AL 22 DE MARZO.xlsx",
+  "input_file": "input/raw/XPERTO 2026 AL 05 ABR.xlsx",
+  "previous_input_file": "input/raw/XPERTO 2026 A 29 MAR.xlsx",
   "worksheet_name": "DATOS",
-  "raw_record_count": 24788,
-  "product_record_count": 23405,
+  "raw_record_count": 26707,
+  "product_record_count": 25131,
   "product_brands": [
     "APUESTAS ROYAL",
     "BETANO",
@@ -34,7 +34,8 @@
     "2026-03-08",
     "2026-03-15",
     "2026-03-22",
-    "2026-03-29"
+    "2026-03-29",
+    "2026-04-05"
   ],
   "tables_generated": [
     "digital.csv",

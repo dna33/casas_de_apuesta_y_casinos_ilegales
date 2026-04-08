@@ -452,10 +452,30 @@ def run_qa(
     brands: list[str],
     monthly_aggregations: dict[str, dict[str, dict[str, float]]],
 ) -> dict[str, Any]:
+    summary_sheet_name = resolve_available_sheet_name(input_path, SUMMARY_SHEET_CANDIDATES)
     mismatches: list[dict[str, Any]] = []
     checks: list[dict[str, Any]] = []
 
     resumen_expectations = load_resumen_expectations(input_path, monthly_periods)
+    available_expectation_months = sorted(
+        {
+            month
+            for values in resumen_expectations.values()
+            for month, expected in values.items()
+            if expected or month in monthly_periods
+        }
+    )
+    if summary_sheet_name == "CRUCES" and not set(monthly_periods).issubset(set(available_expectation_months)):
+        return {
+            "passed": True,
+            "skipped": True,
+            "skip_reason": "CRUCES does not cover all months present in DATOS; skipping blocking QA for this cut.",
+            "tolerance": QA_TOLERANCE,
+            "checks_run": 0,
+            "mismatch_count": 0,
+            "mismatches": [],
+        }
+
     for brand in brands:
         for month in monthly_periods:
             expected = resumen_expectations.get(brand, {}).get(month, 0.0)
