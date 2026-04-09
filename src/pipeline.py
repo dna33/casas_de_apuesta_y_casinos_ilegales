@@ -293,8 +293,34 @@ def sort_periods(periods: set[str]) -> list[str]:
     return sorted(periods, key=lambda value: datetime.strptime(value, "%Y-%m-%d" if len(value) == 10 else "%Y-%m"))
 
 
+def published_records(records: list[dict[str, str]]) -> list[dict[str, str]]:
+    return [record for record in records if record["brand_name"] not in EXCLUDED_PRODUCT_BRANDS]
+
+
 def format_amount(value: float) -> str:
     return f"{value:.2f}"
+
+
+def format_cut_label(input_path: Path) -> str:
+    coverage_end = workbook_coverage_end(input_path)
+    if coverage_end:
+        observed_date = datetime.fromisoformat(coverage_end).date()
+        month_name = {
+            1: "enero",
+            2: "febrero",
+            3: "marzo",
+            4: "abril",
+            5: "mayo",
+            6: "junio",
+            7: "julio",
+            8: "agosto",
+            9: "septiembre",
+            10: "octubre",
+            11: "noviembre",
+            12: "diciembre",
+        }[observed_date.month]
+        return f"Corte al {observed_date.day:02d} de {month_name} de {observed_date.year}"
+    return "Corte disponible"
 
 
 def aggregate_period_tables(
@@ -574,7 +600,7 @@ def build_visualization_payload(
         "title": "Inversion semanal por casino de apuesta ilegal",
         "currency": "CLP",
         "repo_url": REPO_URL,
-        "source_file": str(input_path.relative_to(ROOT_DIR)) if input_path.is_relative_to(ROOT_DIR) else str(input_path),
+        "source_file": format_cut_label(input_path),
         "source_sheet": source_sheet_name,
         "period_granularity": "week",
         "periods": periods,
@@ -798,62 +824,71 @@ def build_stacked_bars_svg(payload: dict[str, Any]) -> str:
 
 
 def build_lines_svg(payload: dict[str, Any]) -> str:
-    palette = ["#8b1e3f", "#0b6e4f", "#2563eb", "#f97316", "#7c3aed", "#b91c1c", "#0f766e", "#475569", "#d97706", "#4f46e5"]
     width = 1280
-    height = 900
-    margin_left = 82
-    margin_right = 48
-    margin_top = 80
-    margin_bottom = 190
+    height = 860
+    margin_left = 210
+    margin_right = 70
+    margin_top = 110
+    margin_bottom = 100
     plot_width = width - margin_left - margin_right
     plot_height = height - margin_top - margin_bottom
     max_value = max(
         (item["series"].get(period, 0.0) for item in payload["brand_totals"] for period in payload["periods"]),
         default=1.0,
     )
+    rows = max(len(payload["brand_totals"]), 1)
+    cols = max(len(payload["periods"]), 1)
+    cell_width = plot_width / cols
+    cell_height = plot_height / rows
+
+    def heat_color(value: float) -> str:
+        ratio = 0.0 if max_value == 0 else min(max(value / max_value, 0.0), 1.0) ** 0.55
+        start = (244, 241, 232)
+        end = (139, 30, 63)
+        channels = [round(start[i] + (end[i] - start[i]) * ratio) for i in range(3)]
+        return "#" + "".join(f"{channel:02x}" for channel in channels)
+
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
-        '<title id="title">Evolucion semanal estimada de la inversion por marca</title>',
-        '<desc id="desc">Lineas con la evolucion semanal de la inversion estimada total por marca.</desc>',
+        '<title id="title">Mapa de calor semanal de la inversion estimada por marca</title>',
+        '<desc id="desc">Mapa de calor con la evolucion semanal estimada de la inversion por marca.</desc>',
         '<rect width="100%" height="100%" fill="#f6f2e9"/>',
-        '<text x="48" y="52" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">Evolucion semanal estimada de la inversion por marca</text>',
-        '<text x="48" y="82" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Serie semanal en CLP valorizada con tarifas estandar a partir de observacion de pauta.</text>',
+        '<text x="48" y="52" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">Mapa de calor semanal de la inversion estimada por marca</text>',
+        '<text x="48" y="82" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Cada celda representa una semana. Cuanto mas intenso el color, mayor la inversion estimada observada.</text>',
     ]
 
-    for tick_index in range(5):
-        y = margin_top + plot_height - plot_height * tick_index / 4
-        value = max_value * tick_index / 4
-        parts.append(f'<line x1="{margin_left}" y1="{y}" x2="{width - margin_right}" y2="{y}" stroke="#e8e3d8" stroke-width="1"/>')
-        parts.append(
-            f'<text x="{margin_left - 12}" y="{y + 4}" text-anchor="end" font-family="Helvetica Neue, Arial, sans-serif" font-size="14" fill="#64748b">{svg_escape(svg_compact(value))}</text>'
-        )
-
     for period_index, period in enumerate(payload["periods"]):
-        x = margin_left + (plot_width / 2 if len(payload["periods"]) == 1 else plot_width * period_index / (len(payload["periods"]) - 1))
-        parts.append(f'<line x1="{x}" y1="{margin_top}" x2="{x}" y2="{height - margin_bottom}" stroke="#efeadd" stroke-width="1"/>')
+        x = margin_left + cell_width * period_index + cell_width / 2
         parts.append(
-            f'<text x="{x}" y="{height - 26}" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="15" fill="#64748b">{svg_escape(period)}</text>'
+            f'<text x="{x}" y="{margin_top - 18}" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="14" fill="#64748b">{svg_escape(period)}</text>'
         )
+        parts.append(f'<line x1="{margin_left + cell_width * period_index}" y1="{margin_top}" x2="{margin_left + cell_width * period_index}" y2="{margin_top + plot_height}" stroke="#efeadd" stroke-width="1"/>')
 
-    legend_y = 116
-    for index, item in enumerate(payload["brand_totals"]):
-        color = palette[index % len(palette)]
-        points = []
-        for period_index, period in enumerate(payload["periods"]):
-            x = margin_left + (plot_width / 2 if len(payload["periods"]) == 1 else plot_width * period_index / (len(payload["periods"]) - 1))
-            value = item["series"].get(period, 0.0)
-            y = margin_top + plot_height - (0 if max_value == 0 else plot_height * value / max_value)
-            points.append((x, y))
-        point_string = " ".join(f"{x},{y}" for x, y in points)
-        parts.append(f'<polyline fill="none" stroke="{color}" stroke-width="3" points="{point_string}"/>')
-        for x, y in points:
-            parts.append(f'<circle cx="{x}" cy="{y}" r="4.5" fill="{color}"/>')
-        legend_x = 70 + (index % 3) * 360
-        legend_row = index // 3
-        legend_y = height - 110 + legend_row * 32
-        parts.append(f'<rect x="{legend_x}" y="{legend_y - 12}" width="14" height="14" rx="7" fill="{color}"/>')
+    for brand_index, item in enumerate(payload["brand_totals"]):
+        y = margin_top + cell_height * brand_index
         parts.append(
-            f'<text x="{legend_x + 22}" y="{legend_y}" font-family="Helvetica Neue, Arial, sans-serif" font-size="15" fill="#334155">{svg_escape(item["brand_name"])}</text>'
+            f'<text x="{margin_left - 14}" y="{y + cell_height / 2 + 5}" text-anchor="end" font-family="Helvetica Neue, Arial, sans-serif" font-size="16" fill="#1f2937">{svg_escape(item["brand_name"])}</text>'
+        )
+        for period_index, period in enumerate(payload["periods"]):
+            value = item["series"].get(period, 0.0)
+            x = margin_left + cell_width * period_index
+            parts.append(
+                f'<rect x="{x + 2}" y="{y + 2}" width="{cell_width - 4}" height="{cell_height - 4}" rx="6" fill="{heat_color(value)}"/>'
+            )
+            if value > 0:
+                text_color = "#ffffff" if max_value and value / max_value > 0.45 else "#1f2937"
+                parts.append(
+                    f'<text x="{x + cell_width / 2}" y="{y + cell_height / 2 + 4}" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="12" fill="{text_color}">{svg_escape(svg_compact(value))}</text>'
+                )
+
+    legend_x = 48
+    legend_y = height - 42
+    for step in range(6):
+        value = max_value * step / 5
+        x = legend_x + step * 90
+        parts.append(f'<rect x="{x}" y="{legend_y - 16}" width="44" height="16" rx="6" fill="{heat_color(value)}"/>')
+        parts.append(
+            f'<text x="{x + 22}" y="{legend_y + 18}" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="13" fill="#64748b">{svg_escape(svg_compact(value))}</text>'
         )
 
     parts.append("</svg>")
@@ -1164,9 +1199,9 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
         <div class="chart-wrap"><svg id="stackedBars" viewBox="0 0 960 560" aria-label="Grafico de barras stackeadas"></svg></div>
       </article>
       <article class="panel">
-        <h2>Evolucion semanal estimada de la inversion por marca</h2>
-        <p class="note">Serie temporal de la estimacion semanal por marca a partir de inserciones publicitarias observadas en el dominio publico y valorizadas con tarifa estandar.</p>
-        <div class="chart-wrap"><svg id="lineChart" viewBox="0 0 760 560" aria-label="Grafico de lineas"></svg></div>
+        <h2>Mapa de calor semanal por marca</h2>
+        <p class="note">Cada celda representa una semana y evita la superposicion de valores: cuanto mas intenso el color, mayor la inversion estimada de esa marca en ese corte.</p>
+        <div class="chart-wrap"><svg id="lineChart" viewBox="0 0 760 560" aria-label="Mapa de calor semanal"></svg></div>
         <div class="line-legend" id="lineLegend"></div>
       </article>
     </section>
@@ -1326,48 +1361,48 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
 
     function renderLineChart() {
       const svg = document.getElementById("lineChart");
-      const width = 900;
-      const height = 560;
+      const width = 980;
+      const height = Math.max(540, 120 + payload.brand_totals.length * 42);
       svg.setAttribute("viewBox", "0 0 " + width + " " + height);
-      const margin = { top: 30, right: 128, bottom: 48, left: 64 };
+      const margin = { top: 70, right: 24, bottom: 70, left: 180 };
       const plotWidth = width - margin.left - margin.right;
       const plotHeight = height - margin.top - margin.bottom;
       const maxValue = Math.max(...payload.brand_totals.flatMap((item) => payload.periods.map((period) => item.series[period] || 0)), 1);
+      const cellWidth = plotWidth / Math.max(payload.periods.length, 1);
+      const cellHeight = plotHeight / Math.max(payload.brand_totals.length, 1);
+      function heatColor(value) {
+        const ratio = Math.pow(Math.min(Math.max(value / maxValue, 0), 1), 0.55);
+        const start = [244, 241, 232];
+        const end = [139, 30, 63];
+        const channels = start.map((channel, index) => Math.round(channel + (end[index] - channel) * ratio));
+        return "rgb(" + channels.join(",") + ")";
+      }
       let content = "";
 
-      for (let i = 0; i <= 4; i += 1) {
-        const y = margin.top + plotHeight - (plotHeight * i / 4);
-        const value = maxValue * i / 4;
-        content += '<line class="grid-line" x1="' + margin.left + '" y1="' + y + '" x2="' + (width - margin.right) + '" y2="' + y + '"></line>';
-        content += '<text class="axis-label" x="' + (margin.left - 10) + '" y="' + (y + 4) + '" text-anchor="end">' + formatCompact(value) + '</text>';
-      }
-
       payload.periods.forEach((period, index) => {
-        const x = margin.left + (payload.periods.length === 1 ? plotWidth / 2 : plotWidth * index / (payload.periods.length - 1));
+        const x = margin.left + cellWidth * index;
         content += '<line class="axis-line" x1="' + x + '" y1="' + margin.top + '" x2="' + x + '" y2="' + (height - margin.bottom) + '"></line>';
-        content += '<text class="axis-label" x="' + x + '" y="' + (height - 16) + '" text-anchor="middle">' + prettyPeriod(period) + '</text>';
+        content += '<text class="axis-label" x="' + (x + cellWidth / 2) + '" y="' + (margin.top - 12) + '" text-anchor="middle">' + prettyPeriod(period) + '</text>';
       });
 
-      payload.brand_totals.forEach((item) => {
-        const color = brandColor(payload.brand_totals.indexOf(item));
-        const points = payload.periods.map((period, index) => {
-          const x = margin.left + (payload.periods.length === 1 ? plotWidth / 2 : plotWidth * index / (payload.periods.length - 1));
+      payload.brand_totals.forEach((item, rowIndex) => {
+        const y = margin.top + cellHeight * rowIndex;
+        content += '<text class="axis-label" x="' + (margin.left - 12) + '" y="' + (y + cellHeight / 2 + 4) + '" text-anchor="end">' + item.brand_name + '</text>';
+        payload.periods.forEach((period, columnIndex) => {
           const value = item.series[period] || 0;
-          const y = margin.top + plotHeight - (plotHeight * value / maxValue);
-          return { x, y, value };
+          const x = margin.left + cellWidth * columnIndex;
+          const textColor = value / maxValue > 0.45 ? '#ffffff' : '#1f2937';
+          content += '<rect x="' + (x + 2) + '" y="' + (y + 2) + '" width="' + (cellWidth - 4) + '" height="' + (cellHeight - 4) + '" rx="6" fill="' + heatColor(value) + '"></rect>';
+          if (value > 0) {
+            content += '<text x="' + (x + cellWidth / 2) + '" y="' + (y + cellHeight / 2 + 4) + '" text-anchor="middle" font-size="11" fill="' + textColor + '">' + formatCompact(value) + '</text>';
+          }
         });
-        content += '<polyline fill="none" stroke="' + color + '" stroke-width="2.5" points="' + points.map((p) => p.x + ',' + p.y).join(' ') + '"></polyline>';
-        points.forEach((point) => {
-          content += '<circle cx="' + point.x + '" cy="' + point.y + '" r="4" fill="' + color + '"></circle>';
-        });
-        const lastPoint = points[points.length - 1];
-        content += '<text class="axis-label" x="' + (width - 12) + '" y="' + (lastPoint.y + 4) + '" text-anchor="end" fill="' + color + '">' + formatMoney(lastPoint.value || 0) + '</text>';
       });
 
       svg.innerHTML = content;
-      document.getElementById("lineLegend").innerHTML = payload.brand_totals.map((item, index) =>
-        '<span><i style="background:' + brandColor(index) + '"></i>' + item.brand_name + '</span>'
-      ).join('');
+      document.getElementById("lineLegend").innerHTML =
+        '<span><i style="background:rgb(244,241,232)"></i>Menor inversion semanal</span>' +
+        '<span><i style="background:rgb(139,30,63)"></i>Mayor inversion semanal</span>';
     }
 
     function renderSummaryTable() {
@@ -1585,10 +1620,8 @@ def build_changes_report(
 
     changed_brands.sort(key=lambda item: abs(item["total_change"]), reverse=True)
     return {
-        "current_input": str(current_input.relative_to(ROOT_DIR)) if current_input.is_relative_to(ROOT_DIR) else str(current_input),
-        "previous_input": (
-            str(previous_input.relative_to(ROOT_DIR)) if previous_input and previous_input.is_relative_to(ROOT_DIR) else str(previous_input)
-        ) if previous_input else None,
+        "current_input": format_cut_label(current_input),
+        "previous_input": format_cut_label(previous_input) if previous_input else None,
         "changed_brand_count": len(changed_brands),
         "changed_brands": changed_brands,
     }
@@ -1606,15 +1639,14 @@ def build_validation_report(
     errors: list[str],
 ) -> dict[str, Any]:
     return {
-        "input_file": str(input_path.relative_to(ROOT_DIR)) if input_path.is_relative_to(ROOT_DIR) else str(input_path),
-        "previous_input_file": (
-            str(previous_input_path.relative_to(ROOT_DIR)) if previous_input_path and previous_input_path.is_relative_to(ROOT_DIR) else str(previous_input_path)
-        ) if previous_input_path else None,
+        "input_file": format_cut_label(input_path),
+        "previous_input_file": format_cut_label(previous_input_path) if previous_input_path else None,
         "worksheet_name": worksheet_name,
         "raw_record_count": len(records),
         "product_record_count": sum(1 for record in records if record["brand_name"] not in EXCLUDED_PRODUCT_BRANDS),
         "product_brands": product_brands,
-        "excluded_product_brands": sorted(EXCLUDED_PRODUCT_BRANDS),
+        "excluded_product_scope": "marcas reguladas en Chile",
+        "excluded_product_brand_count": len(EXCLUDED_PRODUCT_BRANDS),
         "period_granularity": "week",
         "periods": product_periods,
         "tables_generated": table_names,
@@ -1629,6 +1661,7 @@ def main() -> int:
     previous_input = args.previous_input or default_previous_workbook(args.input)
     raw_sheet_name = resolve_available_sheet_name(args.input, RAW_SHEET_CANDIDATES)
     records = load_records(args.input)
+    public_records = published_records(records)
     errors = validate_records(records)
 
     if errors:
@@ -1648,9 +1681,9 @@ def main() -> int:
         )
         raise SystemExit("Validation failed. See output/master/validation_report.json for details.")
 
-    write_csv(PROCESSED_DETAIL_OUTPUT, list(CANONICAL_FIELD_ORDER), records)
-    write_csv(MASTER_CSV_OUTPUT, list(CANONICAL_FIELD_ORDER), records)
-    write_json(MASTER_JSON_OUTPUT, records)
+    write_csv(PROCESSED_DETAIL_OUTPUT, list(CANONICAL_FIELD_ORDER), public_records)
+    write_csv(MASTER_CSV_OUTPUT, list(CANONICAL_FIELD_ORDER), public_records)
+    write_json(MASTER_JSON_OUTPUT, public_records)
 
     periods, brands, aggregations = aggregate_period_tables(records, "week_ending")
     monthly_periods, _, monthly_aggregations = aggregate_period_tables(records, "month")
@@ -1681,7 +1714,7 @@ def main() -> int:
     if not qa_report["passed"]:
         raise SystemExit("QA failed. See output/master/qa_report.json for details.")
 
-    visualization_payload = build_visualization_payload(args.input, raw_sheet_name, records, periods, brands, aggregations, qa_report)
+    visualization_payload = build_visualization_payload(args.input, raw_sheet_name, public_records, periods, brands, aggregations, qa_report)
     write_json(VISUALIZATION_DATA_OUTPUT, visualization_payload)
     visualization_html = build_visualization_html(visualization_payload)
     write_text(VISUALIZATION_HTML_OUTPUT, visualization_html)
@@ -1689,7 +1722,7 @@ def main() -> int:
     write_text(LINES_SVG_OUTPUT, build_lines_svg(visualization_payload))
     write_text(SITE_INDEX_OUTPUT, visualization_html)
     write_json(SITE_SUMMARY_OUTPUT, visualization_payload)
-    write_json(SITE_MASTER_OUTPUT, records)
+    write_json(SITE_MASTER_OUTPUT, public_records)
 
     write_json(
         VALIDATION_OUTPUT,

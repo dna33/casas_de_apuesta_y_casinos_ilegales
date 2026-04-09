@@ -6,7 +6,7 @@
 
 Primer data product publicado: inversión semanal estimada por marca en publicidad de apuestas y casinos online observados en Chile.
 
-Los montos están expresados en pesos chilenos (`CLP`) y provienen del archivo fuente [XPERTO 2026 A 29 MAR.xlsx](input/raw/XPERTO%202026%20A%2029%20MAR.xlsx), recibido en crudo y procesado desde la hoja `DATOS`.
+Los montos están expresados en pesos chilenos (`CLP`) y provienen del workbook crudo más reciente recibido para el corte semanal, procesado desde la hoja `DATOS`.
 
 Estas cifras deben leerse como **estimaciones de inversión publicitaria**: el proyecto mide publicidad observada en el dominio público, registra sus apariciones en televisión, radio, internet, vía pública y otros soportes, y luego valoriza esas apariciones con tarifas estándar de mercado. Esa metodología permite **estimar con buena precisión la magnitud de la inversión publicitaria** realizada por las marcas observadas. Aun así, los montos publicados pueden presentar diferencias menores respecto de los montos efectivamente transados o facturados en la realidad.
 
@@ -202,7 +202,7 @@ El repositorio ya tiene un primer pipeline operativo para transformar la planill
 Con el workbook actual, el pipeline se ejecuta así:
 
 ```bash
-python3 src/pipeline.py --input "input/raw/XPERTO 2026 A 29 MAR.xlsx"
+python3 src/pipeline.py
 ```
 
 ### Salidas base
@@ -223,7 +223,7 @@ python3 src/pipeline.py --input "input/raw/XPERTO 2026 A 29 MAR.xlsx"
 
 ### Supuesto del primer producto
 
-Para este primer corte, el producto excluye `MONTICELLO` y `XPERTO` del universo de plataformas observadas en este producto. Ese supuesto está parametrizado en [schema.py](src/schema.py) y puede ajustarse si cambia el criterio editorial.
+Para este primer corte, el producto excluye marcas reguladas en Chile del universo de plataformas observadas en este producto. Ese supuesto está parametrizado en [schema.py](src/schema.py) y puede ajustarse si cambia el criterio editorial.
 
 ---
 

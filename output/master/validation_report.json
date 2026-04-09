@@ -1,6 +1,6 @@
 {
-  "input_file": "input/raw/XPERTO 2026 AL 05 ABR.xlsx",
-  "previous_input_file": "input/raw/XPERTO 2026 A 29 MAR.xlsx",
+  "input_file": "Corte al 05 de abril de 2026",
+  "previous_input_file": "Corte al 29 de marzo de 2026",
   "worksheet_name": "DATOS",
   "raw_record_count": 26707,
   "product_record_count": 25131,
@@ -16,10 +16,8 @@
     "ROJABET",
     "TONYBET"
   ],
-  "excluded_product_brands": [
-    "MONTICELLO",
-    "XPERTO"
-  ],
+  "excluded_product_scope": "marcas reguladas en Chile",
+  "excluded_product_brand_count": 2,
   "period_granularity": "week",
   "periods": [
     "2026-01-04",

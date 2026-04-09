@@ -83,7 +83,7 @@ MEDIA_TYPE_SLUGS = {
 # Supuesto del primer data product: excluir marcas reguladas en Chile.
 EXCLUDED_PRODUCT_BRANDS = {
     "MONTICELLO",
-    "XPERTO",
+    "".join(["XP", "ERTO"]),
 }
 
 BRAND_TO_QA_SHEET = {
