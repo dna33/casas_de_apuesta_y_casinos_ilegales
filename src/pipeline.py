@@ -5,6 +5,7 @@ import csv
 import html
 import json
 import re
+import subprocess
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -323,6 +324,24 @@ def format_cut_label(input_path: Path) -> str:
     return "Corte disponible"
 
 
+def repository_updated_at() -> str:
+    try:
+        completed = subprocess.run(
+            ["git", "log", "-1", "--format=%cI"],
+            cwd=ROOT_DIR,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        raw = completed.stdout.strip()
+        if raw:
+            updated = datetime.fromisoformat(raw.replace("Z", "+00:00")).astimezone(UTC)
+            return updated.strftime("%Y-%m-%d %H:%M UTC")
+    except (subprocess.CalledProcessError, ValueError):
+        pass
+    return datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
+
+
 def aggregate_period_tables(
     records: list[dict[str, str]],
     period_field: str,
@@ -602,7 +621,7 @@ def build_visualization_payload(
         "repo_url": REPO_URL,
         "source_file": format_cut_label(input_path),
         "source_sheet": source_sheet_name,
-        "updated_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
+        "updated_at": repository_updated_at(),
         "period_granularity": "week",
         "periods": periods,
         "brands": brands,
