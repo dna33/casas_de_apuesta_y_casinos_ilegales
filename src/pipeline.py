@@ -854,7 +854,7 @@ def build_lines_svg(payload: dict[str, Any]) -> str:
         '<desc id="desc">Mapa de calor con la evolucion semanal estimada de la inversion por marca.</desc>',
         '<rect width="100%" height="100%" fill="#f6f2e9"/>',
         '<text x="48" y="52" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">Mapa de calor semanal de la inversion estimada por marca</text>',
-        '<text x="48" y="82" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Cada celda representa una semana. Cuanto mas intenso el color, mayor la inversion estimada observada.</text>',
+        '<text x="48" y="82" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#5f6b7a">Cada celda representa un corte semanal de 2026. Cuanto mas intenso el color, mayor la inversion estimada observada.</text>',
     ]
 
     for period_index, period in enumerate(payload["periods"]):
@@ -1200,7 +1200,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       </article>
       <article class="panel">
         <h2>Mapa de calor semanal por marca</h2>
-        <p class="note">Cada celda representa una semana y evita la superposicion de valores: cuanto mas intenso el color, mayor la inversion estimada de esa marca en ese corte.</p>
+        <p class="note">Cada celda representa un corte semanal de 2026 y evita la superposicion de valores: cuanto mas intenso el color, mayor la inversion estimada de esa marca en ese corte.</p>
         <div class="chart-wrap"><svg id="lineChart" viewBox="0 0 760 560" aria-label="Mapa de calor semanal"></svg></div>
         <div class="line-legend" id="lineLegend"></div>
       </article>
@@ -1273,6 +1273,13 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     function prettyPeriod(value) {
       const [year, month, day] = value.split("-").map(Number);
       return periodFormatter.format(new Date(year, month - 1, day));
+    }
+
+    function compactPeriod(value) {
+      const [year, month, day] = value.split("-").map(Number);
+      return new Intl.DateTimeFormat("es-CL", { day: "2-digit", month: "short" })
+        .format(new Date(year, month - 1, day))
+        .replace(".", "");
     }
 
     function mediaLabel(slug) {
@@ -1382,7 +1389,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       payload.periods.forEach((period, index) => {
         const x = margin.left + cellWidth * index;
         content += '<line class="axis-line" x1="' + x + '" y1="' + margin.top + '" x2="' + x + '" y2="' + (height - margin.bottom) + '"></line>';
-        content += '<text class="axis-label" x="' + (x + cellWidth / 2) + '" y="' + (margin.top - 12) + '" text-anchor="middle">' + prettyPeriod(period) + '</text>';
+        content += '<text class="axis-label" x="' + (x + cellWidth / 2) + '" y="' + (margin.top - 12) + '" text-anchor="middle">' + compactPeriod(period) + '</text>';
       });
 
       payload.brand_totals.forEach((item, rowIndex) => {
