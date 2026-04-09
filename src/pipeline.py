@@ -36,7 +36,7 @@ QA_OUTPUT = ROOT_DIR / "output" / "master" / "qa_report.json"
 VISUALIZATION_HTML_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_semanal_por_casino_ilegal.html"
 VISUALIZATION_DATA_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_semanal_por_casino_ilegal_summary.json"
 STACKED_SVG_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_por_marca_stackeada.svg"
-LINES_SVG_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_por_semana_lineas.svg"
+HEATMAP_SVG_OUTPUT = VISUALIZATION_OUTPUT_DIR / "inversion_por_semana_heatmap.svg"
 SITE_INDEX_OUTPUT = SITE_OUTPUT_DIR / "index.html"
 SITE_SUMMARY_OUTPUT = SITE_OUTPUT_DIR / "data" / "inversion_semanal_por_casino_ilegal_summary.json"
 SITE_MASTER_OUTPUT = SITE_OUTPUT_DIR / "data" / "master_investment_detail.json"
@@ -602,6 +602,7 @@ def build_visualization_payload(
         "repo_url": REPO_URL,
         "source_file": format_cut_label(input_path),
         "source_sheet": source_sheet_name,
+        "updated_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         "period_granularity": "week",
         "periods": periods,
         "brands": brands,
@@ -1186,6 +1187,8 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
           <dd id="metaSource"></dd>
           <dt>Hoja</dt>
           <dd id="metaSheet"></dd>
+          <dt>Actualizado</dt>
+          <dd id="metaUpdatedAt"></dd>
           <dt>QA</dt>
           <dd><span class="pill" id="metaQa"></span></dd>
         </dl>
@@ -1307,6 +1310,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       document.getElementById("metaCurrency").textContent = payload.currency;
       document.getElementById("metaSource").textContent = payload.source_file;
       document.getElementById("metaSheet").textContent = payload.source_sheet;
+      document.getElementById("metaUpdatedAt").textContent = payload.updated_at;
       document.getElementById("metaQa").textContent = payload.qa_passed ? "QA OK (" + payload.qa_checks_run + " chequeos)" : "QA con observaciones";
       document.getElementById("repoLink").href = payload.repo_url;
       document.getElementById("repoLink").textContent = payload.repo_url;
@@ -1726,7 +1730,7 @@ def main() -> int:
     visualization_html = build_visualization_html(visualization_payload)
     write_text(VISUALIZATION_HTML_OUTPUT, visualization_html)
     write_text(STACKED_SVG_OUTPUT, build_stacked_bars_svg(visualization_payload))
-    write_text(LINES_SVG_OUTPUT, build_lines_svg(visualization_payload))
+    write_text(HEATMAP_SVG_OUTPUT, build_lines_svg(visualization_payload))
     write_text(SITE_INDEX_OUTPUT, visualization_html)
     write_json(SITE_SUMMARY_OUTPUT, visualization_payload)
     write_json(SITE_MASTER_OUTPUT, public_records)

@@ -40,7 +40,7 @@ Vista previa directa en GitHub:
 
 ![Barras stackeadas por marca](output/visualizations/inversion_por_marca_stackeada.svg)
 
-![Lineas por semana](output/visualizations/inversion_por_semana_lineas.svg)
+![Mapa de calor por semana](output/visualizations/inversion_por_semana_heatmap.svg)
 
 Repositorio abierto destinado a recopilar, verificar y publicar información sobre **publicidad y presencia en medios chilenos de plataformas de apuestas online cuya autorización para operar o publicitarse en Chile ha sido objeto de controversia pública, regulatoria o judicial**.
 
