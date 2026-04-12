@@ -905,91 +905,169 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
   <title>Visualizacion: Inversion mensual por casino de apuesta ilegal</title>
   <style>
     :root {
-      --bg: #f4f1e8;
-      --panel: #fffdf8;
-      --ink: #1f2937;
-      --muted: #5f6b7a;
-      --accent: #8b1e3f;
-      --accent-2: #0b6e4f;
-      --border: #d7d2c7;
-      --grid: #e8e3d8;
-      --shadow: 0 18px 40px rgba(31, 41, 55, 0.08);
-      --tv_abierta: #b91c1c;
-      --tv_cable: #f97316;
-      --radio: #0f766e;
-      --via_publica: #7c3aed;
-      --digital: #2563eb;
-      --prensa: #475569;
+      --bg: #080b10;
+      --panel: rgba(18, 24, 34, 0.86);
+      --panel-strong: #111827;
+      --ink: #eef2f7;
+      --muted: #94a3b8;
+      --soft: #cbd5e1;
+      --accent: #d7b56d;
+      --accent-2: #72d6c9;
+      --danger: #e06a6a;
+      --border: rgba(148, 163, 184, 0.22);
+      --grid: rgba(148, 163, 184, 0.14);
+      --shadow: 0 28px 90px rgba(0, 0, 0, 0.34);
+      --tv_abierta: #d36a5f;
+      --tv_cable: #d99f62;
+      --radio: #6ac4b0;
+      --via_publica: #a889dd;
+      --digital: #6aa5e8;
+      --prensa: #9aa7b7;
     }
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
-      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif;
       color: var(--ink);
       background:
-        radial-gradient(circle at top left, rgba(139, 30, 63, 0.12), transparent 28%),
-        radial-gradient(circle at top right, rgba(11, 110, 79, 0.10), transparent 24%),
-        linear-gradient(180deg, #f6f2e9 0%, #f3efe5 100%);
+        radial-gradient(circle at 18% 0%, rgba(215, 181, 109, 0.18), transparent 28%),
+        radial-gradient(circle at 82% 10%, rgba(114, 214, 201, 0.12), transparent 26%),
+        linear-gradient(180deg, #07090d 0%, #0d121b 48%, #07090d 100%);
+      min-height: 100vh;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,0.65), transparent 78%);
     }
     a { color: var(--accent); }
     .page {
-      max-width: 1280px;
+      max-width: 1320px;
       margin: 0 auto;
-      padding: 32px 20px 64px;
+      padding: 28px 20px 56px;
+      position: relative;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 42px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      font-weight: 700;
+    }
+    .brand-mark::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 28px rgba(215, 181, 109, 0.7);
+    }
+    .nav-links { display: flex; gap: 18px; flex-wrap: wrap; }
+    .nav-links a { color: var(--muted); text-decoration: none; }
+    .nav-links a:hover { color: var(--ink); }
+    .kicker {
+      color: var(--accent);
+      font-size: 0.78rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+      font-weight: 800;
     }
     .hero {
       display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 20px;
+      grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
+      gap: 22px;
       margin-bottom: 24px;
+      align-items: stretch;
     }
     .panel {
       background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 18px;
+      border-radius: 26px;
       box-shadow: var(--shadow);
-      padding: 22px;
+      padding: 26px;
+      backdrop-filter: blur(18px);
+    }
+    .hero-main {
+      min-height: 470px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        linear-gradient(135deg, rgba(215, 181, 109, 0.12), transparent 38%),
+        radial-gradient(circle at 88% 20%, rgba(114, 214, 201, 0.12), transparent 24%),
+        var(--panel);
+    }
+    .context-panel {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018)),
+        rgba(12, 17, 25, 0.9);
     }
     h1, h2, h3 { margin: 0 0 10px; }
-    h1 { font-size: clamp(2rem, 4vw, 3.4rem); line-height: 0.95; }
-    h2 { font-size: 1.35rem; }
-    h3 { font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
-    p { margin: 0 0 10px; line-height: 1.5; }
-    .lede { font-size: 1.08rem; max-width: 58ch; }
-    .meta dt { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
-    .meta dd { margin: 4px 0 14px; font-weight: bold; }
+    h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.8rem, 7vw, 6.9rem);
+      line-height: 0.89;
+      letter-spacing: -0.075em;
+      max-width: 980px;
+    }
+    h2 { font-size: clamp(1.35rem, 2.2vw, 2.05rem); letter-spacing: -0.035em; }
+    h3 { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.16em; }
+    p { margin: 0 0 10px; line-height: 1.65; }
+    .lede { font-size: clamp(1.05rem, 1.7vw, 1.28rem); max-width: 68ch; color: var(--soft); }
+    .note { color: var(--muted); font-size: 0.94rem; }
+    .meta { margin: 0; }
+    .meta dt { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; }
+    .meta dd { margin: 5px 0 18px; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
     .stats {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 14px;
-      margin: 14px 0 26px;
+      margin: 30px 0 0;
     }
     .stat {
-      background: rgba(246, 242, 233, 0.9);
+      background: rgba(255, 255, 255, 0.045);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
+      border-radius: 20px;
+      padding: 18px;
     }
     .stat .label {
       display: block;
       font-size: 0.78rem;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.14em;
       margin-bottom: 6px;
     }
-    .stat strong { font-size: 1.4rem; }
+    .stat strong { font-size: clamp(1.22rem, 2vw, 1.85rem); letter-spacing: -0.04em; }
     .legend {
       display: flex;
       flex-wrap: wrap;
       gap: 10px 16px;
-      margin-top: 12px;
+      margin-top: 20px;
     }
     .legend span {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       font-size: 0.92rem;
+      color: var(--soft);
     }
     .legend i {
       width: 12px;
@@ -1001,14 +1079,14 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       display: flex;
       flex-wrap: wrap;
       gap: 10px 16px;
-      margin-top: 14px;
+      margin-top: 18px;
     }
     .line-legend span {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       font-size: 0.9rem;
-      color: #334155;
+      color: var(--soft);
     }
     .line-legend i {
       width: 12px;
@@ -1019,8 +1097,16 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     .charts {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 20px;
+      gap: 22px;
       margin-bottom: 24px;
+    }
+    .section-label {
+      color: var(--accent);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 0.76rem;
+      font-weight: 800;
+      margin-bottom: 10px;
     }
     .chart-wrap {
       overflow-x: auto;
@@ -1039,29 +1125,35 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     .table-wrap {
       overflow: auto;
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 20px;
+      max-height: 680px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.95rem;
-      background: white;
+      background: rgba(8, 11, 16, 0.42);
     }
     th, td {
-      padding: 10px 12px;
+      padding: 13px 14px;
       border-bottom: 1px solid var(--grid);
       text-align: left;
       vertical-align: top;
+      color: var(--soft);
     }
     th {
       font-size: 0.78rem;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.1em;
       position: sticky;
       top: 0;
-      background: #faf7f0;
+      background: #101722;
+      z-index: 2;
+      cursor: default;
     }
+    tbody tr:hover { background: rgba(255,255,255,0.045); }
+    td strong { color: var(--ink); }
     #piecesTable th:first-child,
     #piecesTable td:first-child {
       min-width: 170px;
@@ -1069,8 +1161,8 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     }
     .viewer {
       display: grid;
-      grid-template-columns: 300px 1fr;
-      gap: 20px;
+      grid-template-columns: 320px 1fr;
+      gap: 22px;
       margin-top: 24px;
     }
     .controls {
@@ -1092,92 +1184,85 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       width: 100%;
       padding: 10px 12px;
       border: 1px solid var(--border);
-      border-radius: 10px;
-      background: white;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.055);
+      color: var(--ink);
       font: inherit;
     }
-    .note {
-      color: var(--muted);
-      font-size: 0.92rem;
+    .control select option { background: #101722; color: var(--ink); }
+    .methodology {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 0.7fr);
+      gap: 22px;
+      margin-top: 24px;
+    }
+    .method-list {
+      display: grid;
+      gap: 14px;
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .method-list li {
+      border-top: 1px solid var(--grid);
+      padding-top: 14px;
+      color: var(--soft);
     }
     .pill {
       display: inline-block;
       padding: 4px 10px;
       border-radius: 999px;
-      background: rgba(11, 110, 79, 0.1);
+      background: rgba(114, 214, 201, 0.12);
       color: var(--accent-2);
       font-size: 0.85rem;
       font-weight: bold;
     }
-    .repo-readme {
-      margin-top: 24px;
-    }
-    .repo-readme .repo-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 14px;
-      font-weight: 700;
-    }
-    .readme-body {
+    .footer {
+      margin-top: 32px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
       border-top: 1px solid var(--grid);
-      padding-top: 18px;
-    }
-    .readme-body h2,
-    .readme-body h3,
-    .readme-body h4 {
-      margin-top: 22px;
-      margin-bottom: 10px;
-    }
-    .readme-body p,
-    .readme-body li {
-      line-height: 1.6;
-      color: #334155;
-    }
-    .readme-body ul {
-      padding-left: 22px;
-      margin: 10px 0 16px;
-    }
-    .readme-body hr {
-      border: 0;
-      border-top: 1px solid var(--grid);
-      margin: 20px 0;
-    }
-    .readme-body pre {
-      overflow: auto;
-      padding: 14px;
-      border-radius: 12px;
-      background: #f6f2e9;
-      border: 1px solid var(--border);
-    }
-    .readme-body code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    }
-    .readme-body img {
-      max-width: 100%;
-      height: auto;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: white;
+      padding-top: 22px;
+      font-size: 0.92rem;
     }
     @media (max-width: 960px) {
-      .hero, .charts, .viewer, .stats { grid-template-columns: 1fr; }
+      .hero, .charts, .viewer, .stats, .methodology { grid-template-columns: 1fr; }
       .page { padding: 18px 14px 40px; }
+      .topbar { align-items: flex-start; flex-direction: column; margin-bottom: 28px; }
+      .hero-main { min-height: auto; }
+      h1 { font-size: clamp(2.7rem, 16vw, 4.8rem); }
+      .panel { padding: 20px; border-radius: 22px; }
+      svg { min-width: 760px; }
+      .chart-wrap { margin: 0 -4px; }
     }
   </style>
 </head>
 <body>
   <div class="page">
+    <header class="topbar">
+      <div class="brand-mark">Observatorio publicitario</div>
+      <nav class="nav-links" aria-label="Navegacion principal">
+        <a href="#serie">Serie semanal</a>
+        <a href="#tabla">Tabla</a>
+        <a href="#piezas">Piezas</a>
+        <a href="#metodologia">Metodo</a>
+      </nav>
+    </header>
     <section class="hero">
-      <div class="panel">
-        <h3>Visualizacion simple</h3>
-        <h1>Inversion semanal por marca en una sola pagina</h1>
+      <div class="panel hero-main">
+        <div>
+          <div class="kicker">Datos abiertos · Chile · Publicidad observada</div>
+          <h1>Inversion publicitaria de apuestas online</h1>
+        </div>
         <p class="lede">Esta pagina muestra una estimacion de la inversion publicitaria observada en el dominio publico. Registra apariciones en television, radio, internet, via publica y otros soportes, y las valoriza con tarifas estandar para aproximar con buena precision cuanto estan invirtiendo las marcas observadas.</p>
         <p class="note">Lo que ves aqui no es una factura ni una declaracion corporativa directa, sino una medicion de publicidad visible en el dominio publico multiplicada por una tarifa estandar. Por esa metodologia, los montos pueden presentar diferencias menores respecto de los valores efectivamente transados o facturados.</p>
         <div class="stats" id="stats"></div>
         <div class="legend" id="legend"></div>
       </div>
-      <aside class="panel">
+      <aside class="panel context-panel">
         <h3>Contexto</h3>
         <dl class="meta">
           <dt>Moneda</dt>
@@ -1194,21 +1279,24 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       </aside>
     </section>
 
-    <section class="charts">
+    <section class="charts" id="serie">
       <article class="panel">
-        <h2>Distribucion estimada de inversion por marca y medio</h2>
-        <p class="note">Cada barra resume la estimacion total por marca y la descompone por tipo de medio segun la publicidad observada y valorizada con tarifa estandar.</p>
-        <div class="chart-wrap"><svg id="stackedBars" viewBox="0 0 960 560" aria-label="Grafico de barras stackeadas"></svg></div>
-      </article>
-      <article class="panel">
+        <div class="section-label">Chart principal</div>
         <h2>Mapa de calor semanal por marca</h2>
         <p class="note">Cada celda representa un corte semanal de 2026 y evita la superposicion de valores: cuanto mas intenso el color, mayor la inversion estimada de esa marca en ese corte.</p>
         <div class="chart-wrap"><svg id="lineChart" viewBox="0 0 760 560" aria-label="Mapa de calor semanal"></svg></div>
         <div class="line-legend" id="lineLegend"></div>
       </article>
+      <article class="panel">
+        <div class="section-label">Composicion</div>
+        <h2>Distribucion estimada por marca y medio</h2>
+        <p class="note">Cada barra resume la estimacion total por marca y la descompone por tipo de medio segun la publicidad observada y valorizada con tarifa estandar.</p>
+        <div class="chart-wrap"><svg id="stackedBars" viewBox="0 0 960 560" aria-label="Grafico de barras stackeadas"></svg></div>
+      </article>
     </section>
 
-    <section class="panel">
+    <section class="panel" id="tabla">
+      <div class="section-label">Tabla de lectura rapida</div>
       <h2>Tabla resumen</h2>
       <p class="note">Totales acumulados estimados por marca en CLP a partir de publicidad observada y valorizada con tarifa estandar.</p>
       <div class="table-wrap">
@@ -1216,11 +1304,12 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       </div>
     </section>
 
-    <section class="viewer">
+    <section class="viewer" id="piezas">
       <aside class="panel controls">
         <div>
+          <div class="section-label">Exploracion</div>
           <h2>Explorador de piezas</h2>
-          <p class="note">La pagina intentara cargar automaticamente el JSON maestro si esta publicada como sitio. Si la abres localmente, tambien puedes cargar el archivo manualmente.</p>
+          <p class="note">Filtra por marca, medio y texto para revisar piezas, programas, evidencia y magnitud estimada. En el sitio publicado se carga automaticamente el JSON maestro.</p>
         </div>
         <div class="control">
           <label for="jsonLoader">Cargar JSON maestro</label>
@@ -1238,6 +1327,15 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
           <label for="searchFilter">Buscar texto</label>
           <input id="searchFilter" type="search" placeholder="medio, programa, version">
         </div>
+        <div class="control">
+          <label for="sortFilter">Ordenar por</label>
+          <select id="sortFilter">
+            <option value="investment">Mayor inversion estimada</option>
+            <option value="observations">Mas apariciones</option>
+            <option value="recent">Mas reciente</option>
+            <option value="brand">Marca</option>
+          </select>
+        </div>
         <p class="note" id="piecesStatus">Intentando cargar el JSON maestro. Si no esta disponible, se mostrara una muestra embebida.</p>
       </aside>
       <section class="panel">
@@ -1247,12 +1345,29 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       </section>
     </section>
 
-    <section class="panel repo-readme">
-      <h2>README del repositorio</h2>
-      <p class="note">Esta seccion replica el README actual del repo para que el contexto quede en la misma pagina.</p>
-      <a class="repo-link" id="repoLink" target="_blank" rel="noreferrer">Abrir repositorio en GitHub</a>
-      <div class="readme-body" id="repoReadme"></div>
+    <section class="methodology" id="metodologia">
+      <article class="panel">
+        <div class="section-label">Metodo</div>
+        <h2>Como leer estos datos</h2>
+        <p class="lede">La medicion cruza apariciones publicitarias observadas en espacios publicos con tarifas estandar de mercado. El resultado es una estimacion comparable de inversion, no una declaracion tributaria ni un registro contable de las empresas.</p>
+        <ul class="method-list">
+          <li><strong>Observacion:</strong> cada fila registra fecha, marca, medio, programa, tipo de aviso y evidencia disponible.</li>
+          <li><strong>Valorizacion:</strong> la aparicion se multiplica por una tarifa estandar para estimar inversion neta.</li>
+          <li><strong>Publicacion:</strong> se excluyen marcas reguladas en Chile y se publican agregados semanales junto con una muestra explorable de piezas.</li>
+        </ul>
+      </article>
+      <aside class="panel">
+        <h3>Notas editoriales</h3>
+        <p class="note">Los montos estan expresados en pesos chilenos. Las semanas cierran en domingo. La lectura correcta es comparativa: magnitud, tendencia y composicion por medio.</p>
+        <p class="note">Este observatorio documenta publicidad observable; no reemplaza asesorias legales, regulatorias ni financieras.</p>
+        <a id="repoLink" target="_blank" rel="noreferrer">Repositorio y datos abiertos</a>
+      </aside>
     </section>
+
+    <footer class="footer">
+      <span>Observatorio abierto de publicidad de apuestas online en Chile</span>
+      <span>Actualizado segun la version publicada del sitio</span>
+    </footer>
   </div>
 
   <script id="payload" type="application/json">__PAYLOAD__</script>
@@ -1316,7 +1431,6 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       document.getElementById("metaQa").textContent = payload.qa_passed ? "QA OK (" + payload.qa_checks_run + " chequeos)" : "QA con observaciones";
       document.getElementById("repoLink").href = payload.repo_url;
       document.getElementById("repoLink").textContent = payload.repo_url;
-      document.getElementById("repoReadme").innerHTML = payload.readme_html;
 
       const totalInvestment = payload.brand_totals.reduce((sum, item) => sum + item.total, 0);
       const topBrand = payload.brand_totals[0];
@@ -1485,6 +1599,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       const brandValue = document.getElementById("brandFilter").value;
       const mediaValue = document.getElementById("mediaFilter").value;
       const searchValue = document.getElementById("searchFilter").value.trim().toLowerCase();
+      const sortValue = document.getElementById("sortFilter").value;
       const rows = aggregatePieceRecords(pieceRecords)
         .filter((item) => !brandValue || item.brand_name === brandValue)
         .filter((item) => !mediaValue || item.media_type === mediaValue)
@@ -1492,7 +1607,12 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
           if (!searchValue) return true;
           return [item.outlet_name, item.program_name, item.creative_version, item.ad_type].join(' ').toLowerCase().includes(searchValue);
         })
-        .sort((left, right) => (right.net_investment || 0) - (left.net_investment || 0))
+        .sort((left, right) => {
+          if (sortValue === "observations") return (right.observations || 0) - (left.observations || 0);
+          if (sortValue === "recent") return (right.last_seen_at || "").localeCompare(left.last_seen_at || "");
+          if (sortValue === "brand") return (left.brand_name || "").localeCompare(right.brand_name || "");
+          return (right.net_investment || 0) - (left.net_investment || 0);
+        })
         .slice(0, 80);
 
       const table = document.getElementById("piecesTable");
@@ -1538,7 +1658,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
         renderPiecesTable();
       });
 
-      ["brandFilter", "mediaFilter", "searchFilter"].forEach((id) => {
+      ["brandFilter", "mediaFilter", "searchFilter", "sortFilter"].forEach((id) => {
         document.getElementById(id).addEventListener("input", renderPiecesTable);
       });
     }
