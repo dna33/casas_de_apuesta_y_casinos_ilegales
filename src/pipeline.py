@@ -1056,6 +1056,35 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       margin-bottom: 6px;
     }
     .stat strong { font-size: clamp(1.22rem, 2vw, 1.85rem); letter-spacing: -0.04em; }
+    .stat small {
+      display: block;
+      color: var(--muted);
+      line-height: 1.45;
+      margin-top: 7px;
+      font-size: 0.82rem;
+    }
+    .briefing {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+    .briefing-card {
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.18);
+      border-radius: 18px;
+      padding: 16px;
+    }
+    .briefing-card span {
+      display: block;
+      color: var(--accent);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 800;
+      margin-bottom: 7px;
+    }
+    .briefing-card strong { display: block; color: var(--ink); line-height: 1.35; }
     .legend {
       display: flex;
       flex-wrap: wrap;
@@ -1154,6 +1183,17 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     }
     tbody tr:hover { background: rgba(255,255,255,0.045); }
     td strong { color: var(--ink); }
+    .media-badge {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 0.78rem;
+      color: var(--ink);
+      background: rgba(255,255,255,0.055);
+      margin-bottom: 6px;
+    }
     #piecesTable th:first-child,
     #piecesTable td:first-child {
       min-width: 170px;
@@ -1230,6 +1270,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     }
     @media (max-width: 960px) {
       .hero, .charts, .viewer, .stats, .methodology { grid-template-columns: 1fr; }
+      .briefing { grid-template-columns: 1fr; }
       .page { padding: 18px 14px 40px; }
       .topbar { align-items: flex-start; flex-direction: column; margin-bottom: 28px; }
       .hero-main { min-height: auto; }
@@ -1259,6 +1300,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
         </div>
         <p class="lede">Esta pagina muestra una estimacion de la inversion publicitaria observada en el dominio publico. Registra apariciones en television, radio, internet, via publica y otros soportes, y las valoriza con tarifas estandar para aproximar con buena precision cuanto estan invirtiendo las marcas observadas.</p>
         <p class="note">Lo que ves aqui no es una factura ni una declaracion corporativa directa, sino una medicion de publicidad visible en el dominio publico multiplicada por una tarifa estandar. Por esa metodologia, los montos pueden presentar diferencias menores respecto de los valores efectivamente transados o facturados.</p>
+        <div class="briefing" id="briefing"></div>
         <div class="stats" id="stats"></div>
         <div class="legend" id="legend"></div>
       </div>
@@ -1434,14 +1476,29 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
 
       const totalInvestment = payload.brand_totals.reduce((sum, item) => sum + item.total, 0);
       const topBrand = payload.brand_totals[0];
+      const latestPeriod = payload.periods[payload.periods.length - 1];
+      const latestLeader = payload.brand_totals
+        .map((item) => ({ brand_name: item.brand_name, value: item.series[latestPeriod] || 0 }))
+        .sort((left, right) => right.value - left.value)[0];
+      const leadingMedia = payload.media_order
+        .map((slug) => ({
+          slug,
+          value: payload.brand_totals.reduce((sum, item) => sum + (item.media_breakdown[slug] || 0), 0)
+        }))
+        .sort((left, right) => right.value - left.value)[0];
+      document.getElementById("briefing").innerHTML = [
+        { label: "Ultimo corte", value: latestLeader.brand_name + " lidera la semana con " + formatCompact(latestLeader.value) },
+        { label: "Mayor acumulado", value: topBrand.brand_name + " concentra " + formatCompact(topBrand.total) + " del periodo" },
+        { label: "Medio dominante", value: mediaLabel(leadingMedia.slug) + " suma " + formatCompact(leadingMedia.value) }
+      ].map((item) => '<div class="briefing-card"><span>' + item.label + '</span><strong>' + item.value + '</strong></div>').join("");
       const stats = [
-        { label: "Marcas", value: payload.brands.length },
-        { label: "Cortes", value: payload.periods.length },
-        { label: "Inversion total", value: formatCompact(totalInvestment) },
-        { label: "Marca lider", value: topBrand.brand_name + " · " + formatCompact(topBrand.total) }
+        { label: "Marcas", value: payload.brands.length, note: "incluidas en el producto publico" },
+        { label: "Cortes", value: payload.periods.length, note: "semanas con cierre dominical" },
+        { label: "Inversion total", value: formatCompact(totalInvestment), note: "estimacion acumulada en CLP" },
+        { label: "Marca lider", value: topBrand.brand_name, note: formatCompact(topBrand.total) + " acumulados" }
       ];
       document.getElementById("stats").innerHTML = stats.map((item) =>
-        '<div class="stat"><span class="label">' + item.label + '</span><strong>' + item.value + '</strong></div>'
+        '<div class="stat"><span class="label">' + item.label + '</span><strong>' + item.value + '</strong><small>' + item.note + '</small></div>'
       ).join("");
 
       document.getElementById("legend").innerHTML = payload.media_order.map((slug) =>
@@ -1622,7 +1679,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
         rows.map((item) => '<tr>' +
           '<td>' + (item.first_seen_at === item.last_seen_at ? (item.first_seen_at || '') : [item.first_seen_at || '', item.last_seen_at || ''].filter(Boolean).join(' a ')) + '</td>' +
           '<td><strong>' + (item.brand_name || '') + '</strong></td>' +
-          '<td>' + [item.media_type, item.outlet_name].filter(Boolean).join(' · ') + '</td>' +
+          '<td>' + (item.media_type ? '<span class="media-badge">' + item.media_type + '</span><br>' : '') + (item.outlet_name || '') + '</td>' +
           '<td>' + (item.program_name || '') + '</td>' +
           '<td>' + [item.ad_type, item.creative_version].filter(Boolean).join(' / ') + '</td>' +
           '<td>' + (item.observations || 0) + '</td>' +
