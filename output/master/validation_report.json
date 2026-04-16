@@ -1,9 +1,9 @@
 {
-  "input_file": "Corte al 05 de abril de 2026",
-  "previous_input_file": "Corte al 29 de marzo de 2026",
+  "input_file": "Corte al 12 de abril de 2026",
+  "previous_input_file": "Corte al 05 de abril de 2026",
   "worksheet_name": "DATOS",
-  "raw_record_count": 26707,
-  "product_record_count": 25131,
+  "raw_record_count": 28827,
+  "product_record_count": 27013,
   "product_brands": [
     "APUESTAS ROYAL",
     "BETANO",
@@ -33,7 +33,8 @@
     "2026-03-15",
     "2026-03-22",
     "2026-03-29",
-    "2026-04-05"
+    "2026-04-05",
+    "2026-04-12"
   ],
   "tables_generated": [
     "digital.csv",

@@ -1,47 +1,47 @@
 {
-  "current_input": "Corte al 05 de abril de 2026",
-  "previous_input": "Corte al 29 de marzo de 2026",
+  "current_input": "Corte al 12 de abril de 2026",
+  "previous_input": "Corte al 05 de abril de 2026",
   "changed_brand_count": 10,
   "changed_brands": [
     {
       "brand_name": "BETANO",
-      "total_change": 90602460.71
+      "total_change": 73255883.08
     },
     {
       "brand_name": "COOLBET",
-      "total_change": 45912070.32
+      "total_change": 31587398.2
     },
     {
       "brand_name": "JUGABET",
-      "total_change": 12395348.52
+      "total_change": 8867596.27
     },
     {
       "brand_name": "LATAMWIN",
-      "total_change": 12348156.91
+      "total_change": 4389459.18
     },
     {
       "brand_name": "ROJABET",
-      "total_change": 4629315.0
+      "total_change": 4216096.0
     },
     {
       "brand_name": "TONYBET",
-      "total_change": 4502384.71
+      "total_change": 2770300.0
     },
     {
       "brand_name": "EPICBET",
-      "total_change": 873288.0
+      "total_change": 860904.0
     },
     {
       "brand_name": "APUESTAS ROYAL",
-      "total_change": 428624.0
+      "total_change": 828723.0
     },
     {
       "brand_name": "BETSSON",
-      "total_change": 58820.0
+      "total_change": 465462.0
     },
     {
       "brand_name": "JUEGA EN LINEA",
-      "total_change": 58752.47
+      "total_change": 7337.32
     }
   ]
 }
