@@ -1296,7 +1296,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       <div class="panel hero-main">
         <div>
           <div class="kicker">Datos abiertos · Chile · Publicidad observada</div>
-          <h1>Inversion publicitaria de apuestas online</h1>
+          <h1>Juego ilegal: Bombardeo publicitario a los jovenes</h1>
         </div>
         <p class="lede">Esta pagina muestra una estimacion de la inversion publicitaria observada en el dominio publico. Registra apariciones en television, radio, internet, via publica y otros soportes, y las valoriza con tarifas estandar para aproximar con buena precision cuanto estan invirtiendo las marcas observadas.</p>
         <p class="note">Lo que ves aqui no es una factura ni una declaracion corporativa directa, sino una medicion de publicidad visible en el dominio publico multiplicada por una tarifa estandar. Por esa metodologia, los montos pueden presentar diferencias menores respecto de los valores efectivamente transados o facturados.</p>
@@ -1402,6 +1402,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
         <h3>Notas editoriales</h3>
         <p class="note">Los montos estan expresados en pesos chilenos. Las semanas cierran en domingo. La lectura correcta es comparativa: magnitud, tendencia y composicion por medio.</p>
         <p class="note">Este observatorio documenta publicidad observable; no reemplaza asesorias legales, regulatorias ni financieras.</p>
+        <p class="note">Los datos se verifican con informacion de <a href="https://www.megatime.cl/" target="_blank" rel="noreferrer">megatime.cl</a>, empresa chilena especializada en monitoreo, verificacion y valorizacion de publicidad en medios, usada para observar apariciones publicitarias y estimar inversion con tarifas estandar.</p>
         <a id="repoLink" target="_blank" rel="noreferrer">Repositorio y datos abiertos</a>
       </aside>
     </section>
