@@ -913,6 +913,8 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       --soft: #cbd5e1;
       --accent: #d7b56d;
       --accent-2: #72d6c9;
+      --campaign: #ff784f;
+      --campaign-2: #56c7ff;
       --danger: #e06a6a;
       --border: rgba(148, 163, 184, 0.22);
       --grid: rgba(148, 163, 184, 0.14);
@@ -931,8 +933,8 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif;
       color: var(--ink);
       background:
-        radial-gradient(circle at 18% 0%, rgba(215, 181, 109, 0.18), transparent 28%),
-        radial-gradient(circle at 82% 10%, rgba(114, 214, 201, 0.12), transparent 26%),
+        radial-gradient(circle at 18% 0%, rgba(255, 120, 79, 0.18), transparent 28%),
+        radial-gradient(circle at 82% 10%, rgba(86, 199, 255, 0.12), transparent 26%),
         linear-gradient(180deg, #07090d 0%, #0d121b 48%, #07090d 100%);
       min-height: 100vh;
     }
@@ -976,13 +978,13 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       height: 9px;
       border-radius: 999px;
       background: var(--accent);
-      box-shadow: 0 0 28px rgba(215, 181, 109, 0.7);
+      box-shadow: 0 0 28px rgba(255, 120, 79, 0.58);
     }
     .nav-links { display: flex; gap: 18px; flex-wrap: wrap; }
     .nav-links a { color: var(--muted); text-decoration: none; }
     .nav-links a:hover { color: var(--ink); }
     .kicker {
-      color: var(--accent);
+      color: var(--campaign);
       font-size: 0.78rem;
       letter-spacing: 0.2em;
       text-transform: uppercase;
@@ -1010,9 +1012,24 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       flex-direction: column;
       justify-content: space-between;
       background:
-        linear-gradient(135deg, rgba(215, 181, 109, 0.12), transparent 38%),
-        radial-gradient(circle at 88% 20%, rgba(114, 214, 201, 0.12), transparent 24%),
+        linear-gradient(135deg, rgba(255, 120, 79, 0.16), transparent 36%),
+        radial-gradient(circle at 90% 12%, rgba(86, 199, 255, 0.16), transparent 24%),
+        linear-gradient(160deg, rgba(255,255,255,0.05), transparent 42%),
         var(--panel);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-main::after {
+      content: "NO";
+      position: absolute;
+      right: clamp(18px, 4vw, 58px);
+      top: clamp(18px, 5vw, 70px);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(5rem, 16vw, 15rem);
+      line-height: 0.78;
+      color: rgba(255, 120, 79, 0.08);
+      letter-spacing: -0.12em;
+      pointer-events: none;
     }
     .context-panel {
       background:
@@ -1022,11 +1039,26 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     h1, h2, h3 { margin: 0 0 10px; }
     h1 {
       font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(2.8rem, 7vw, 6.9rem);
-      line-height: 0.89;
+      font-size: clamp(2.7rem, 7.6vw, 7.6rem);
+      line-height: 0.84;
       letter-spacing: -0.075em;
       max-width: 980px;
     }
+    .title-small {
+      display: block;
+      font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+      font-size: clamp(1rem, 1.8vw, 1.45rem);
+      line-height: 1;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--campaign-2);
+      margin-bottom: 12px;
+    }
+    .title-punch {
+      color: var(--campaign);
+      text-shadow: 0 0 42px rgba(255, 120, 79, 0.22);
+    }
+    .title-rest { display: block; }
     h2 { font-size: clamp(1.35rem, 2.2vw, 2.05rem); letter-spacing: -0.035em; }
     h3 { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.16em; }
     p { margin: 0 0 10px; line-height: 1.65; }
@@ -1071,13 +1103,15 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
     }
     .briefing-card {
       border: 1px solid var(--border);
-      background: rgba(0, 0, 0, 0.18);
-      border-radius: 18px;
-      padding: 16px;
+      background:
+        linear-gradient(150deg, rgba(255, 120, 79, 0.10), rgba(86, 199, 255, 0.06)),
+        rgba(0, 0, 0, 0.18);
+      border-radius: 24px;
+      padding: 18px;
     }
     .briefing-card span {
       display: block;
-      color: var(--accent);
+      color: var(--campaign-2);
       font-size: 0.72rem;
       text-transform: uppercase;
       letter-spacing: 0.14em;
@@ -1130,7 +1164,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       margin-bottom: 24px;
     }
     .section-label {
-      color: var(--accent);
+      color: var(--campaign);
       letter-spacing: 0.16em;
       text-transform: uppercase;
       font-size: 0.76rem;
@@ -1296,7 +1330,7 @@ def build_visualization_html(payload: dict[str, Any]) -> str:
       <div class="panel hero-main">
         <div>
           <div class="kicker">Datos abiertos · Chile · Publicidad observada</div>
-          <h1>Juego ilegal: Bombardeo publicitario a los jovenes</h1>
+          <h1><span class="title-small">Juego ilegal</span><span class="title-punch">Bombardeo</span><span class="title-rest">publicitario a los jovenes</span></h1>
         </div>
         <p class="lede">Esta pagina muestra una estimacion de la inversion publicitaria observada en el dominio publico. Registra apariciones en television, radio, internet, via publica y otros soportes, y las valoriza con tarifas estandar para aproximar con buena precision cuanto estan invirtiendo las marcas observadas.</p>
         <p class="note">Lo que ves aqui no es una factura ni una declaracion corporativa directa, sino una medicion de publicidad visible en el dominio publico multiplicada por una tarifa estandar. Por esa metodologia, los montos pueden presentar diferencias menores respecto de los valores efectivamente transados o facturados.</p>
